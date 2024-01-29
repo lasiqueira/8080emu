@@ -1,10 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int disassemble_8080_op(unsigned char *code_buffer, int pos);
-void unimplemented_instruction(State8080* state);
-int emulate_8080_op(State8080* state);
-int parity(int x, int size);
+
 
 typedef struct ConditionCodes{
     uint8_t z:1;
@@ -29,6 +26,11 @@ typedef struct State8080{
     struct ConditionCodes cc;
     uint8_t int_enable;
 } State8080;
+
+int disassemble_8080_op(unsigned char *code_buffer, int pos);
+void unimplemented_instruction(State8080* state);
+int emulate_8080_op(State8080* state);
+int parity(int x, int size);
 
 int main(int argc, char**argv)
 {
@@ -78,7 +80,7 @@ int disassemble_8080_op(unsigned char *code_buffer, int pc)
         case 0x0b: printf("DCX    B"); break;
         case 0x0c: printf("INR    C"); break;
         case 0x0d: printf("DCR    C"); break;
-        case 0x0e: printf("MVI    C,#$02x", code[1]); op_bytes=2; break;
+        case 0x0e: printf("MVI    C,#$%02x", code[1]); op_bytes=2; break;
         case 0x0f: printf("RRC"); break;
 
         case 0x10: printf("NOP"); break;
@@ -104,11 +106,11 @@ int disassemble_8080_op(unsigned char *code_buffer, int pc)
         case 0x23: printf("INX    H"); break;
         case 0x24: printf("INR    H"); break;
         case 0x25: printf("DCR    H"); break;
-        case 0x26: printf("MVI    H,#$02x", code[1]); op_bytes=2; break;
+        case 0x26: printf("MVI    H,#$%02x", code[1]); op_bytes=2; break;
         case 0x27: printf("DAA"); break;
         case 0x28: printf("NOP"); break;
         case 0x29: printf("DAD    H"); break;
-        case 0x2a: printf("LHLD   $02x%02x", code[2], code[1]); op_bytes=3; break;
+        case 0x2a: printf("LHLD   $%02x%02x", code[2], code[1]); op_bytes=3; break;
         case 0x2b: printf("DCX    H"); break;
         case 0x2c: printf("INR    L"); break;
         case 0x2d: printf("DCR    L"); break;
@@ -116,7 +118,7 @@ int disassemble_8080_op(unsigned char *code_buffer, int pc)
         case 0x2f: printf("CMA"); break;
 
         case 0x30: printf("SIM"); break;
-        case 0x31: printf("LXI    SP,%$02x%02x", code[2], code[1]); op_bytes=3; break;
+        case 0x31: printf("LXI    SP,$%02x%02x", code[2], code[1]); op_bytes=3; break;
         case 0x32: printf("STA    $%02x%02x", code[2], code[1]); op_bytes=3; break;
         case 0x33: printf("INX    SP"); break;
         case 0x34: printf("INR    M"); break;
@@ -314,7 +316,7 @@ int disassemble_8080_op(unsigned char *code_buffer, int pc)
         case 0xe9: printf("PCHL"); break;
         case 0xea: printf("JPE    $%02x%02x", code[2], code[1]); op_bytes=3; break;
         case 0xeb: printf("XCHG"); break;
-        case 0xec: printf("CPE    $%02x%02x", code[2, code[1]]); op_bytes=3; break;
+        case 0xec: printf("CPE    $%02x%02x", code[2], code[1]); op_bytes=3; break;
         case 0xed: printf("NOP"); break;
         case 0xee: printf("XRI    #$%02x", code[1]); op_bytes=2; break;
         case 0xef: printf("RST    5"); break;
@@ -343,12 +345,14 @@ int disassemble_8080_op(unsigned char *code_buffer, int pc)
 
 }
 
+
 void unimplemented_instruction(State8080* state)
 {
     //pc will have advanced one, so undo that
     printf ("Error: Unimplemented instruction\n");
     exit(1);
 }
+
 
 int emulate_8080_op(State8080* state)
    {
@@ -510,7 +514,7 @@ int emulate_8080_op(State8080* state)
             state->cc.z = ((answer & 0xff) == 0);
             state->cc.s = ((answer & 0x80) != 0);
             state->cc.cy = (answer > 0xff);
-            state->cc.p = Parity(answer&0xff);
+            state->cc.p = parity(answer&0xff);
             state->a = answer & 0xff;
             } break;
         case 0x81:
@@ -519,7 +523,7 @@ int emulate_8080_op(State8080* state)
             state->cc.z = ((answer & 0xff) == 0);
             state->cc.s = ((answer & 0x80) != 0);
             state->cc.cy = (answer > 0xff);
-            state->cc.p = Parity(answer&0xff);
+            state->cc.p = parity(answer&0xff);
             state->a = answer & 0xff;
             }
             break;
@@ -529,7 +533,7 @@ int emulate_8080_op(State8080* state)
             state->cc.z = ((answer & 0xff) == 0);
             state->cc.s = ((answer & 0x80) != 0);
             state->cc.cy = (answer > 0xff);
-            state->cc.p = Parity(answer&0xff);
+            state->cc.p = parity(answer&0xff);
             state->a = answer & 0xff;
             }
             break;
@@ -539,7 +543,7 @@ int emulate_8080_op(State8080* state)
             state->cc.z = ((answer & 0xff) == 0);
             state->cc.s = ((answer & 0x80) != 0);
             state->cc.cy = (answer > 0xff);
-            state->cc.p = Parity(answer&0xff);
+            state->cc.p = parity(answer&0xff);
             state->a = answer & 0xff;
             }
             break;
@@ -549,7 +553,7 @@ int emulate_8080_op(State8080* state)
             state->cc.z = ((answer & 0xff) == 0);
             state->cc.s = ((answer & 0x80) != 0);
             state->cc.cy = (answer > 0xff);
-            state->cc.p = Parity(answer&0xff);
+            state->cc.p = parity(answer&0xff);
             state->a = answer & 0xff;
             }
             break;
@@ -559,7 +563,7 @@ int emulate_8080_op(State8080* state)
             state->cc.z = ((answer & 0xff) == 0);
             state->cc.s = ((answer & 0x80) != 0);
             state->cc.cy = (answer > 0xff);
-            state->cc.p = Parity(answer&0xff);
+            state->cc.p = parity(answer&0xff);
             state->a = answer & 0xff;
             }
             break;
@@ -570,7 +574,7 @@ int emulate_8080_op(State8080* state)
             state->cc.z = ((answer & 0xff) == 0);
             state->cc.s = ((answer & 0x80) != 0);
             state->cc.cy = (answer > 0xff);
-            state->cc.p = Parity(answer&0xff);
+            state->cc.p = parity(answer&0xff);
             state->a = answer & 0xff;
             }
             break;
@@ -642,11 +646,11 @@ int emulate_8080_op(State8080* state)
         case 0xc5: unimplemented_instruction(state); break;
         case 0xc6:
             {
-            uint16_t answer = (uint16_t) state->a + (uint16_t) opcode[1];
+            uint16_t answer = (uint16_t) state->a + (uint16_t) op_code[1];
             state->cc.z = ((answer & 0xff) == 0);
             state->cc.s = ((answer & 0x80) != 0);
             state->cc.cy = (answer > 0xff);
-            state->cc.p = Parity(answer&0xff);
+            state->cc.p = parity(answer&0xff);
             state->a = answer & 0xff;
             }
             break;

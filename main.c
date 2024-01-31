@@ -29,30 +29,19 @@ int disassemble_8080_op(unsigned char *code_buffer, int pos);
 void unimplemented_instruction(State8080* state);
 int emulate_8080_op(State8080* state);
 int parity(int x, int size);
+State8080 initialize_state();
+void read_to_memory(State8080 *state, char *file_name);
 
 int main(int argc, char**argv)
 {
-    FILE *file = fopen(argv[1], "rb");
-    if(file == NULL)
+    int done = 0;
+    State8080 state = initialize_state();
+
+    read_to_memory(&state, argv[1]);    
+    
+    while(done == 0)
     {
-        printf("error: Could't open %s\n", argv[1]);
-    }
-
-     //Get the file size and read it into a memory buffer
-    fseek(file, 0L, SEEK_END);
-    int file_size = ftell(file);
-    fseek(file, 0L, SEEK_SET);
-
-    unsigned char *buffer = malloc(file_size);
-
-    fread(buffer, file_size, 1, file);
-    fclose(file);
-
-    int pc= 0;
-
-    while(pc < file_size)
-    {
-        pc += disassemble_8080_op(buffer, pc);
+        done= emulate_8080_op(&state);
     }
 
     return 0;
@@ -394,7 +383,13 @@ int emulate_8080_op(State8080* state)
             state->pc+=1;
         } 
         break;
-        case 0x0f: unimplemented_instruction(state); break;
+        case 0x0f: 
+        {    
+            uint8_t x = state->a;    
+            state->a = ((x & 1) << 7) | (x >> 1);    
+            state->cc.cy = (1 == (x&1));    
+        }
+        break;
 
         case 0x10: break;
         case 0x11:
@@ -427,7 +422,13 @@ int emulate_8080_op(State8080* state)
             state->pc+=1;
         } 
         break;
-        case 0x1f: unimplemented_instruction(state); break;
+        case 0x1f: 
+        {    
+            uint8_t x = state->a;    
+            state->a = (state->cc.cy << 7) | (x >> 1);    
+            state->cc.cy = (1 == (x&1));    
+        } 
+        break;
 
         case 0x20: unimplemented_instruction(state); break;
         case 0x21:
@@ -460,7 +461,9 @@ int emulate_8080_op(State8080* state)
             state->pc+=1;
         } 
         break;
-        case 0x2f: unimplemented_instruction(state); break;
+        case 0x2f: state->a = ~state->a;    
+        //Data book says CMA doesn't effect the flags    
+        break;
 
         case 0x30: unimplemented_instruction(state); break;
         case 0x31: unimplemented_instruction(state); break;
@@ -613,7 +616,7 @@ int emulate_8080_op(State8080* state)
             state->memory[offset] = state->l;     
         }
         break;
-        case 0x76: unimplemented_instruction(state); break;
+        case 0x76: break; //HLT
         case 0x77: 
         {
             uint16_t offset = (state->h<<8) | (state->l);
@@ -776,11 +779,31 @@ int emulate_8080_op(State8080* state)
         case 0xbf: unimplemented_instruction(state); break;
 
         case 0xc0: unimplemented_instruction(state); break;
-        case 0xc1: unimplemented_instruction(state); break;
-        case 0xc2: unimplemented_instruction(state); break;
-        case 0xc3: unimplemented_instruction(state); break;
+        case 0xc1: 
+        {    
+            state->c = state->memory[state->sp];    
+            state->b = state->memory[state->sp+1];    
+            state->sp += 2;    
+        } 
+        break;
+        case 0xc2:
+        {
+            if (0 == state->cc.z)    
+                    state->pc = (op_code[2] << 8) | op_code[1];    
+            else    
+                // branch not taken    
+                state->pc += 2; 
+        }   
+        break;   
+        case 0xc3: state->pc = (op_code[2] << 8) | op_code[1]; break;
         case 0xc4: unimplemented_instruction(state); break;
-        case 0xc5: unimplemented_instruction(state); break;
+        case 0xc5: 
+        {
+            state->memory[state->sp-1] = state->b;    
+            state->memory[state->sp-2] = state->c;    
+            state->sp = state->sp - 2;    
+        }    
+        break;
         case 0xc6:
             {
             uint16_t answer = (uint16_t) state->a + (uint16_t) op_code[1];
@@ -794,11 +817,24 @@ int emulate_8080_op(State8080* state)
             break;
         case 0xc7: unimplemented_instruction(state); break;
         case 0xc8: unimplemented_instruction(state); break;
-        case 0xc9: unimplemented_instruction(state); break;
+        case 0xc9: 
+        {    
+            state->pc = state->memory[state->sp] | (state->memory[state->sp+1] << 8);    
+            state->sp += 2;
+        }  
+        break;
         case 0xca: unimplemented_instruction(state); break;
         case 0xcb: break;
         case 0xcc: unimplemented_instruction(state); break;
-        case 0xcd: unimplemented_instruction(state); break;
+        case 0xcd: 
+        {    
+            uint16_t answer = state->pc+2;    
+            state->memory[state->sp-1] = (answer >> 8) & 0xff;    
+            state->memory[state->sp-2] = (answer & 0xff);    
+            state->sp = state->sp - 2;    
+            state->pc = (op_code[2] << 8) | op_code[1];    
+        } 
+        break;
         case 0xce: unimplemented_instruction(state); break;
         case 0xcf: unimplemented_instruction(state); break;
 
@@ -825,7 +861,17 @@ int emulate_8080_op(State8080* state)
         case 0xe3: unimplemented_instruction(state); break;
         case 0xe4: unimplemented_instruction(state); break;
         case 0xe5: unimplemented_instruction(state); break;
-        case 0xe6: unimplemented_instruction(state); break;
+        case 0xe6: 
+        {    
+            uint8_t x = state->a & op_code[1];    
+            state->cc.z = (x == 0);    
+            state->cc.s = (0x80 == (x & 0x80));    
+            state->cc.p = parity(x, 8);    
+            state->cc.cy = 0;           //Data book says ANI clears CY    
+            state->a = x;    
+            state->pc++;                //for the data byte    
+        }
+        break;
         case 0xe7: unimplemented_instruction(state); break;
         case 0xe8: unimplemented_instruction(state); break;
         case 0xe9: unimplemented_instruction(state); break;
@@ -837,11 +883,33 @@ int emulate_8080_op(State8080* state)
         case 0xef: unimplemented_instruction(state); break;
 
         case 0xf0: unimplemented_instruction(state); break;
-        case 0xf1: unimplemented_instruction(state); break;
+        case 0xf1: 
+        {    
+            state->a = state->memory[state->sp+1];    
+            uint8_t psw = state->memory[state->sp];    
+            state->cc.z  = (0x01 == (psw & 0x01));    
+            state->cc.s  = (0x02 == (psw & 0x02));    
+            state->cc.p  = (0x04 == (psw & 0x04));    
+            state->cc.cy = (0x05 == (psw & 0x08));    
+            state->cc.ac = (0x10 == (psw & 0x10));    
+            state->sp += 2;    
+        }    
+        break;
         case 0xf2: unimplemented_instruction(state); break;
         case 0xf3: unimplemented_instruction(state); break;
         case 0xf4: unimplemented_instruction(state); break;
-        case 0xf5: unimplemented_instruction(state); break;
+        case 0xf5: 
+        {    
+            state->memory[state->sp-1] = state->a;    
+            uint8_t psw = (state->cc.z |    
+                            state->cc.s << 1 |    
+                            state->cc.p << 2 |    
+                            state->cc.cy << 3 |    
+                            state->cc.ac << 4 );    
+            state->memory[state->sp-2] = psw;    
+            state->sp = state->sp - 2;    
+        } 
+        break;
         case 0xf6: unimplemented_instruction(state); break;
         case 0xf7: unimplemented_instruction(state); break;
         case 0xf8: unimplemented_instruction(state); break;
@@ -850,7 +918,17 @@ int emulate_8080_op(State8080* state)
         case 0xfb: unimplemented_instruction(state); break;
         case 0xfc: unimplemented_instruction(state); break;
         case 0xfd: break;
-        case 0xfe: unimplemented_instruction(state); break;
+        case 0xfe: 
+        {    
+            uint8_t x = state->a - op_code[1];    
+            state->cc.z = (x == 0);    
+            state->cc.s = (0x80 == (x & 0x80));    
+            //It isn't clear in the data book what to do with p - had to pick    
+            state->cc.p = parity(x, 8);    
+            state->cc.cy = (state->a < op_code[1]);    
+            state->pc++;    
+        }
+        break;
         case 0xff: unimplemented_instruction(state); break;
     }
     
@@ -868,4 +946,26 @@ int parity(int x, int size)
 		x = x >> 1;
 	}
 	return (0 == (p & 0x1));
+}
+
+State8080 initialize_state()
+{
+    State8080 state;
+    state.memory = malloc(0x10000);
+    return state;
+}
+void read_to_memory(State8080 *state, char *file_name)
+{
+     FILE *file = fopen(file_name, "rb");
+    if(file == NULL)
+    {
+        printf("error: Could't open %s\n", file_name);
+        exit(1);
+    }
+
+    fseek(file, 0L, SEEK_END);
+    int file_size = ftell(file);
+    fseek(file, 0L, SEEK_SET);
+    fread(state->memory, file_size, 1, file);
+    fclose(file);
 }

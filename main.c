@@ -24,13 +24,17 @@ typedef struct State8080{
     struct ConditionCodes cc;
     uint8_t int_enable;
 } State8080;
-
+//EMU
 int disassemble_8080_op(unsigned char *code_buffer, int pos);
 void unimplemented_instruction(State8080* state);
 int emulate_8080_op(State8080* state);
 int parity(int x, int size);
+//STATE
 State8080 initialize_state();
 void read_to_memory(State8080 *state, char *file_name);
+uint8_t* get_m(State8080 *state);
+//OPCODE FUNS
+void add(State8080 *state, uint8_t *reg);
 
 int main(int argc, char**argv)
 {
@@ -47,6 +51,7 @@ int main(int argc, char**argv)
     return 0;
 }
 
+//EMU
 int disassemble_8080_op(unsigned char *code_buffer, int pc)
 {
     unsigned char *code = &code_buffer[pc];
@@ -493,231 +498,82 @@ int emulate_8080_op(State8080* state)
         break;
         case 0x3f: unimplemented_instruction(state); break;
 
-        case 0x40: state->b = state->b; break;
-        case 0x41: state->b = state->c; break;
-        case 0x42: state->b = state->d; break;
-        case 0x43: state->b = state->e; break;
-        case 0x44: state->b = state->h; break;
-        case 0x45: state->b = state->l; break;
-        case 0x46: 
-        {
-            uint16_t offset = (state->h<<8) | (state->l);
-            state->b = state->memory[offset];
-            
-        }
-        break;
-        case 0x47: state->b = state->a; break;
-        case 0x48: state->c = state->b; break;
-        case 0x49: state->c = state->c; break;
-        case 0x4a: state->c = state->d; break;
-        case 0x4b: state->c = state->e; break;
-        case 0x4c: state->c = state->h; break;
-        case 0x4d: state->c = state->l; break;
-        case 0x4e: 
-        {
-            uint16_t offset = (state->h<<8) | (state->l);
-            state->c = state->memory[offset];
-            
-        }
-        break;
-        case 0x4f: state->c = state->a; break;
+        case 0x40: mov(&state->b, &state->b); break;
+        case 0x41: mov(&state->b, &state->c); break;
+        case 0x42: mov(&state->b, &state->d); break;
+        case 0x43: mov(&state->b, &state->e); break;
+        case 0x44: mov(&state->b, &state->h); break;
+        case 0x45: mov(&state->b, &state->l); break;
+        case 0x46: mov(&state->b, get_m(state)); break;
+        case 0x47: mov(&state->b, &state->a); break;
+        case 0x48: mov(&state->c, &state->b); break;
+        case 0x49: mov(&state->c, &state->c); break;
+        case 0x4a: mov(&state->c, &state->d); break;
+        case 0x4b: mov(&state->c, &state->e); break;
+        case 0x4c: mov(&state->c, &state->h); break;
+        case 0x4d: mov(&state->c, &state->l); break;
+        case 0x4e: mov(&state->c, get_m(state)); break;
+        case 0x4f: mov(&state->c, &state->a); break;
 
-        case 0x50: state->d = state->b; break;
-        case 0x51: state->d = state->c; break;
-        case 0x52: state->d = state->d; break;
-        case 0x53: state->d = state->e; break;
-        case 0x54: state->d = state->h; break;
-        case 0x55: state->d = state->l; break;
-        case 0x56: 
-        {
-            uint16_t offset = (state->h<<8) | (state->l);
-            state->d = state->memory[offset];
-            
-        }
-        break;
-        case 0x57: state->d = state->a; break;
-        case 0x58: state->e = state->b; break;
-        case 0x59: state->e = state->c; break;
-        case 0x5a: state->e = state->d; break;
-        case 0x5b: state->e = state->e; break;
-        case 0x5c: state->e = state->h; break;
-        case 0x5d: state->e = state->l; break;
-        case 0x5e: 
-        {
-            uint16_t offset = (state->h<<8) | (state->l);
-            state->e = state->memory[offset];
-            
-        }
-        break;
-        case 0x5f: state->e = state->a; break;
+        case 0x50: mov(&state->d, &state->b); break;
+        case 0x51: mov(&state->d, &state->c); break;
+        case 0x52: mov(&state->d, &state->d); break;
+        case 0x53: mov(&state->d, &state->e); break;
+        case 0x54: mov(&state->d, &state->h); break;
+        case 0x55: mov(&state->d, &state->l); break;
+        case 0x56: mov(&state->d, get_m(state)); break;
+        case 0x57: mov(&state->d, &state->a); break;
+        case 0x58: mov(&state->e, &state->b); break;
+        case 0x59: mov(&state->e, &state->c); break;
+        case 0x5a: mov(&state->e, &state->d); break;
+        case 0x5b: mov(&state->e, &state->e); break;
+        case 0x5c: mov(&state->e, &state->h); break;
+        case 0x5d: mov(&state->e, &state->l); break;
+        case 0x5e: mov(&state->e, get_m(state));break;
+        case 0x5f: mov(&state->e, &state->a); break;
 
-        case 0x60: state->h = state->b; break;
-        case 0x61: state->h = state->c; break;
-        case 0x62: state->h = state->d; break;
-        case 0x63: state->h = state->e; break;
-        case 0x64: state->h = state->h; break;
-        case 0x65: state->h = state->l; break;
-        case 0x66: 
-        {
-            uint16_t offset = (state->h<<8) | (state->l);
-            state->h = state->memory[offset];
-            
-        }
-        break;
-        case 0x67: state->h = state->a; break;
-        case 0x68: state->l = state->b; break;
-        case 0x69: state->l = state->c; break;
-        case 0x6a: state->l = state->d; break;
-        case 0x6b: state->l = state->e; break;
-        case 0x6c: state->l = state->h; break;
-        case 0x6d: state->l = state->l; break;
-        case 0x6e: 
-        {
-            uint16_t offset = (state->h<<8) | (state->l);
-            state->l = state->memory[offset];
-            
-        }
-        break;
-        case 0x6f: state->l = state->a; break;
+        case 0x60: mov(&state->h, &state->b); break;
+        case 0x61: mov(&state->h, &state->c); break;
+        case 0x62: mov(&state->h, &state->d); break;
+        case 0x63: mov(&state->h, &state->e); break;
+        case 0x64: mov(&state->h, &state->h); break;
+        case 0x65: mov(&state->h, &state->l); break;
+        case 0x66: mov(&state->h, get_m(state));break;
+        case 0x67: mov(&state->h, &state->a); break;
+        case 0x68: mov(&state->l, &state->b); break;
+        case 0x69: mov(&state->l, &state->c); break;
+        case 0x6a: mov(&state->l, &state->d); break;
+        case 0x6b: mov(&state->l, &state->e); break;
+        case 0x6c: mov(&state->l, &state->h); break;
+        case 0x6d: mov(&state->l, &state->l); break;
+        case 0x6e: mov(&state->l, get_m(state)); break;
+        case 0x6f: mov(&state->l, &state->a); break;
 
-        case 0x70: 
-        {
-            uint16_t offset = (state->h<<8) | (state->l);
-            state->memory[offset] = state->b;     
-        }
-        break;
-        case 0x71: 
-        {
-            uint16_t offset = (state->h<<8) | (state->l);
-            state->memory[offset] = state->c;     
-        }
-        break;
-        case 0x72: 
-        {
-            uint16_t offset = (state->h<<8) | (state->l);
-            state->memory[offset] = state->d;     
-        }
-        break;
-        case 0x73: 
-        {
-            uint16_t offset = (state->h<<8) | (state->l);
-            state->memory[offset] = state->e;     
-        }
-        break;
-        case 0x74: 
-        {
-            uint16_t offset = (state->h<<8) | (state->l);
-            state->memory[offset] = state->h;     
-        }
-        break;
-        case 0x75: 
-        {
-            uint16_t offset = (state->h<<8) | (state->l);
-            state->memory[offset] = state->l;     
-        }
-        break;
-        case 0x76: break; //HLT
-        case 0x77: 
-        {
-            uint16_t offset = (state->h<<8) | (state->l);
-            state->memory[offset] = state->a;     
-        }
-        break;
-        case 0x78: state->a = state->b; break;
-        case 0x79: state->a = state->c; break;
-        case 0x7a: state->a = state->d; break;
-        case 0x7b: state->a = state->e; break;
-        case 0x7c: state->a = state->h; break;
-        case 0x7d: state->a = state->l; break;
-        case 0x7e: 
-        {
-            uint16_t offset = (state->h<<8) | (state->l);
-            state->a = state->memory[offset];
-            
-        }
-        break;
-        case 0x7f: state->a = state->a; break;
+        case 0x70: mov(get_m(state), &state->b); break;
+        case 0x71: mov(get_m(state), &state->c); break;
+        case 0x72: mov(get_m(state), &state->d); break;
+        case 0x73: mov(get_m(state), &state->e); break;
+        case 0x74: mov(get_m(state), &state->h); break;
+        case 0x75: mov(get_m(state), &state->l); break;
+        case 0x76: hlt(); break;
+        case 0x77: mov(get_m(state), &state->a); break;
+        case 0x78: mov(&state->a, &state->b); break;
+        case 0x79: mov(&state->a, &state->c); break;
+        case 0x7a: mov(&state->a, &state->d); break;
+        case 0x7b: mov(&state->a, &state->e); break;
+        case 0x7c: mov(&state->a, &state->h); break;
+        case 0x7d: mov(&state->a, &state->l); break;
+        case 0x7e: mov(&state->a, get_m(state)); break;
+        case 0x7f: mov(&state->a, &state->a); break;
 
-        case 0x80:
-            {
-            uint16_t answer = (uint16_t) state->a + (uint16_t) state->b;
-            state->cc.z = ((answer & 0xff) == 0);
-            state->cc.s = ((answer & 0x80) != 0);
-            state->cc.cy = (answer > 0xff);
-            state->cc.p = parity(answer&0xff, 8);
-            state->a = answer & 0xff;
-            } break;
-        case 0x81:
-            {
-            uint16_t answer = (uint16_t) state->a + (uint16_t) state->c;
-            state->cc.z = ((answer & 0xff) == 0);
-            state->cc.s = ((answer & 0x80) != 0);
-            state->cc.cy = (answer > 0xff);
-            state->cc.p = parity(answer&0xff, 8);
-            state->a = answer & 0xff;
-            }
-            break;
-        case 0x82:
-            {
-            uint16_t answer = (uint16_t) state->a + (uint16_t) state->d;
-            state->cc.z = ((answer & 0xff) == 0);
-            state->cc.s = ((answer & 0x80) != 0);
-            state->cc.cy = (answer > 0xff);
-            state->cc.p = parity(answer&0xff, 8);
-            state->a = answer & 0xff;
-            }
-            break;
-        case 0x83:
-            {
-            uint16_t answer = (uint16_t) state->a + (uint16_t) state->e;
-            state->cc.z = ((answer & 0xff) == 0);
-            state->cc.s = ((answer & 0x80) != 0);
-            state->cc.cy = (answer > 0xff);
-            state->cc.p = parity(answer&0xff, 8);
-            state->a = answer & 0xff;
-            }
-            break;
-        case 0x84:
-            {
-            uint16_t answer = (uint16_t) state->a + (uint16_t) state->h;
-            state->cc.z = ((answer & 0xff) == 0);
-            state->cc.s = ((answer & 0x80) != 0);
-            state->cc.cy = (answer > 0xff);
-            state->cc.p = parity(answer&0xff, 8);
-            state->a = answer & 0xff;
-            }
-            break;
-        case 0x85:
-            {
-            uint16_t answer = (uint16_t) state->a + (uint16_t) state->l;
-            state->cc.z = ((answer & 0xff) == 0);
-            state->cc.s = ((answer & 0x80) != 0);
-            state->cc.cy = (answer > 0xff);
-            state->cc.p = parity(answer&0xff, 8);
-            state->a = answer & 0xff;
-            }
-            break;
-        case 0x86: 
-            {
-            uint16_t offset =  (state->h<<8) + (state->l);
-            uint16_t answer = (uint16_t) state-> a + state->memory[offset];
-            state->cc.z = ((answer & 0xff) == 0);
-            state->cc.s = ((answer & 0x80) != 0);
-            state->cc.cy = (answer > 0xff);
-            state->cc.p = parity(answer&0xff, 8);
-            state->a = answer & 0xff;
-            }
-            break;
-        case 0x87:
-            {
-            uint16_t answer = (uint16_t) state->a + (uint16_t) state->a;
-            state->cc.z = ((answer & 0xff) == 0);
-            state->cc.s = ((answer & 0x80) != 0);
-            state->cc.cy = (answer > 0xff);
-            state->cc.p = parity(answer&0xff, 8);
-            state->a = answer & 0xff;
-            }
-            break;
+        case 0x80: add(state, &state->b); break;
+        case 0x81: add(state, &state->c); break;
+        case 0x82: add(state, &state->d); break;
+        case 0x83: add(state, &state->e); break;
+        case 0x84: add(state, &state->h); break;
+        case 0x85: add(state, &state->l); break;
+        case 0x86: add(state, get_m(state)); break;
+        case 0x87: add(state, &state->a); break;
         case 0x88: unimplemented_instruction(state); break;
         case 0x89: unimplemented_instruction(state); break;
         case 0x8a: unimplemented_instruction(state); break;
@@ -947,7 +803,7 @@ int parity(int x, int size)
 	}
 	return (0 == (p & 0x1));
 }
-
+//STATE
 State8080 initialize_state()
 {
     State8080 state;
@@ -968,4 +824,29 @@ void read_to_memory(State8080 *state, char *file_name)
     fseek(file, 0L, SEEK_SET);
     fread(state->memory, file_size, 1, file);
     fclose(file);
+}
+
+uint8_t* get_m(State8080 * state)
+{
+    uint16_t offset =  (state->h<<8) + (state->l);
+    return &state->memory[offset];
+}
+
+//OPCODE FUN
+void mov(uint8_t *lhv, uint8_t *rhv)
+{
+    *lhv = *rhv;
+}
+void add(State8080 *state, uint8_t *reg)
+{
+    uint16_t sum = (uint16_t) state->a + (uint16_t) *reg;
+    state->cc.z = ((sum & 0xff) == 0);
+    state->cc.s = ((sum & 0x80) != 0);
+    state->cc.cy = (sum > 0xff);
+    state->cc.p = parity(sum&0xff, 8);
+    state->a = sum & 0xff;
+}
+void hlt()
+{
+    exit(0);
 }

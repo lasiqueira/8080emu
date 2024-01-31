@@ -35,6 +35,8 @@ void read_to_memory(State8080 *state, char *file_name);
 uint8_t* get_m(State8080 *state);
 //OPCODE FUNS
 void add(State8080 *state, uint8_t *reg);
+void mov(uint8_t *lhv, uint8_t *rhv);
+void hlt();
 
 int main(int argc, char**argv)
 {

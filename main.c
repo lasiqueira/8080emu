@@ -38,6 +38,9 @@ void add(State8080 *state, uint8_t *reg);
 void mov(uint8_t *lhv, uint8_t *rhv);
 void mvi(uint8_t *lhv, unsigned char *op_code, uint16_t *pc);
 void hlt();
+void rrc(State8080 *state);
+void jmp(uint16_t *pc, unsigned char *op_code);
+void cma(uint8_t *reg_a);
 
 int main(int argc, char**argv)
 {
@@ -381,13 +384,7 @@ int emulate_8080_op(State8080* state)
         case 0x0c: unimplemented_instruction(state); break;
         case 0x0d: unimplemented_instruction(state); break;
         case 0x0e: mvi(&state->c, op_code, &state->pc); break;
-        case 0x0f: 
-        {    
-            uint8_t x = state->a;    
-            state->a = ((x & 1) << 7) | (x >> 1);    
-            state->cc.cy = (1 == (x&1));    
-        }
-        break;
+        case 0x0f: rrc(state); break;
 
         case 0x10: break;
         case 0x11:
@@ -439,10 +436,7 @@ int emulate_8080_op(State8080* state)
         case 0x2c: unimplemented_instruction(state); break;
         case 0x2d: unimplemented_instruction(state); break;
         case 0x2e: mvi(&state->l, op_code, &state->pc); break;
-        case 0x2f: state->a = ~state->a;    
-        //Data book says CMA doesn't effect the flags    
-        break;
-
+        case 0x2f: cma(&state->a); break;
         case 0x30: unimplemented_instruction(state); break;
         case 0x31: unimplemented_instruction(state); break;
         case 0x32: unimplemented_instruction(state); break;
@@ -613,7 +607,7 @@ int emulate_8080_op(State8080* state)
                 state->pc += 2; 
         }   
         break;   
-        case 0xc3: state->pc = (op_code[2] << 8) | op_code[1]; break;
+        case 0xc3: jmp(&state->pc, op_code); break;
         case 0xc4: unimplemented_instruction(state); break;
         case 0xc5: 
         {
@@ -816,4 +810,18 @@ void mvi(uint8_t *lhv, unsigned char *op_code, uint16_t *pc)
 void hlt()
 {
     exit(0);
+}
+void rrc(State8080 *state)
+{
+    uint8_t val = state->a;    
+    state->a = ((val & 1) << 7) | (val >> 1);    
+    state->cc.cy = (1 == (val&1));    
+}
+void jmp(uint16_t *pc, unsigned char *op_code)
+{
+    *pc = (op_code[2]<<8) | (op_code[1]);
+}
+void cma(uint8_t *reg_a)
+{
+    *reg_a = ~*reg_a;
 }

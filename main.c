@@ -41,6 +41,13 @@ void hlt();
 void rrc(State8080 *state);
 void jmp(uint16_t *pc, unsigned char *op_code);
 void cma(uint8_t *reg_a);
+void jnz(State8080 *state, unsigned char *op_code);
+void adi(State8080 *state, unsigned char *op_code);
+void ret(State8080 *state);
+void call(State8080 *state, unsigned char *op_code);
+void rar(State8080 *state);
+void ani(State8080 *state, unsigned char *op_code);
+void cpi(State8080 *state, unsigned char *op_code);
 
 int main(int argc, char**argv)
 {
@@ -407,14 +414,7 @@ int emulate_8080_op(State8080* state)
         case 0x1c: unimplemented_instruction(state); break;
         case 0x1d: unimplemented_instruction(state); break;
         case 0x1e: mvi(&state->e, op_code, &state->pc); break;
-        case 0x1f: 
-        {    
-            uint8_t x = state->a;    
-            state->a = (state->cc.cy << 7) | (x >> 1);    
-            state->cc.cy = (1 == (x&1));    
-        } 
-        break;
-
+        case 0x1f: rar(state); break;
         case 0x20: unimplemented_instruction(state); break;
         case 0x21:
         {
@@ -598,15 +598,7 @@ int emulate_8080_op(State8080* state)
             state->sp += 2;    
         } 
         break;
-        case 0xc2:
-        {
-            if (0 == state->cc.z)    
-                    state->pc = (op_code[2] << 8) | op_code[1];    
-            else    
-                // branch not taken    
-                state->pc += 2; 
-        }   
-        break;   
+        case 0xc2: jnz(state, op_code); break;   
         case 0xc3: jmp(&state->pc, op_code); break;
         case 0xc4: unimplemented_instruction(state); break;
         case 0xc5: 
@@ -616,37 +608,14 @@ int emulate_8080_op(State8080* state)
             state->sp = state->sp - 2;    
         }    
         break;
-        case 0xc6:
-            {
-            uint16_t answer = (uint16_t) state->a + (uint16_t) op_code[1];
-            state->cc.z = ((answer & 0xff) == 0);
-            state->cc.s = ((answer & 0x80) != 0);
-            state->cc.cy = (answer > 0xff);
-            state->cc.p = parity(answer&0xff, 8);
-            state->a = answer & 0xff;
-            state->pc+=1;
-            }
-            break;
+        case 0xc6: adi(state, op_code); break;
         case 0xc7: unimplemented_instruction(state); break;
         case 0xc8: unimplemented_instruction(state); break;
-        case 0xc9: 
-        {    
-            state->pc = state->memory[state->sp] | (state->memory[state->sp+1] << 8);    
-            state->sp += 2;
-        }  
-        break;
+        case 0xc9: ret(state); break;
         case 0xca: unimplemented_instruction(state); break;
         case 0xcb: break;
         case 0xcc: unimplemented_instruction(state); break;
-        case 0xcd: 
-        {    
-            uint16_t answer = state->pc+2;    
-            state->memory[state->sp-1] = (answer >> 8) & 0xff;    
-            state->memory[state->sp-2] = (answer & 0xff);    
-            state->sp = state->sp - 2;    
-            state->pc = (op_code[2] << 8) | op_code[1];    
-        } 
-        break;
+        case 0xcd: call(state, op_code); break;
         case 0xce: unimplemented_instruction(state); break;
         case 0xcf: unimplemented_instruction(state); break;
 
@@ -673,17 +642,7 @@ int emulate_8080_op(State8080* state)
         case 0xe3: unimplemented_instruction(state); break;
         case 0xe4: unimplemented_instruction(state); break;
         case 0xe5: unimplemented_instruction(state); break;
-        case 0xe6: 
-        {    
-            uint8_t x = state->a & op_code[1];    
-            state->cc.z = (x == 0);    
-            state->cc.s = (0x80 == (x & 0x80));    
-            state->cc.p = parity(x, 8);    
-            state->cc.cy = 0;           //Data book says ANI clears CY    
-            state->a = x;    
-            state->pc++;                //for the data byte    
-        }
-        break;
+        case 0xe6: ani(state, op_code); break;
         case 0xe7: unimplemented_instruction(state); break;
         case 0xe8: unimplemented_instruction(state); break;
         case 0xe9: unimplemented_instruction(state); break;
@@ -730,17 +689,7 @@ int emulate_8080_op(State8080* state)
         case 0xfb: unimplemented_instruction(state); break;
         case 0xfc: unimplemented_instruction(state); break;
         case 0xfd: break;
-        case 0xfe: 
-        {    
-            uint8_t x = state->a - op_code[1];    
-            state->cc.z = (x == 0);    
-            state->cc.s = (0x80 == (x & 0x80));    
-            //It isn't clear in the data book what to do with p - had to pick    
-            state->cc.p = parity(x, 8);    
-            state->cc.cy = (state->a < op_code[1]);    
-            state->pc++;    
-        }
-        break;
+        case 0xfe: cpi(state, op_code); break;
         case 0xff: unimplemented_instruction(state); break;
     }
     
@@ -789,10 +738,12 @@ uint8_t* get_m(State8080 * state)
 }
 
 //OPCODE FUN
+
 void mov(uint8_t *lhv, uint8_t *rhv)
 {
     *lhv = *rhv;
 }
+
 void add(State8080 *state, uint8_t *reg)
 {
     uint16_t sum = (uint16_t) state->a + (uint16_t) *reg;
@@ -802,26 +753,95 @@ void add(State8080 *state, uint8_t *reg)
     state->cc.p = parity(sum&0xff, 8);
     state->a = sum & 0xff;
 }
+
 void mvi(uint8_t *lhv, unsigned char *op_code, uint16_t *pc)
 {
     *lhv = op_code[1];
     *pc += 1;
 }
+
 void hlt()
 {
     exit(0);
 }
+
 void rrc(State8080 *state)
 {
     uint8_t val = state->a;    
     state->a = ((val & 1) << 7) | (val >> 1);    
     state->cc.cy = (1 == (val&1));    
 }
+
 void jmp(uint16_t *pc, unsigned char *op_code)
 {
     *pc = (op_code[2]<<8) | (op_code[1]);
 }
+
 void cma(uint8_t *reg_a)
 {
     *reg_a = ~*reg_a;
+}
+
+void jnz(State8080 *state, unsigned char *op_code)
+{
+    if (0 == state->cc.z)    
+        state->pc = (op_code[2] << 8) | op_code[1];    
+    else    
+        // branch not taken    
+        state->pc += 2; 
+}
+
+void adi(State8080 *state, unsigned char *op_code)
+{
+    uint16_t sum = (uint16_t) state->a + (uint16_t) op_code[1];
+    state->cc.z = ((sum & 0xff) == 0);
+    state->cc.s = ((sum & 0x80) != 0);
+    state->cc.cy = (sum > 0xff);
+    state->cc.p = parity(sum&0xff, 8);
+    state->a = sum & 0xff;
+    state->pc+=1;
+}
+
+void ret(State8080 *state)
+{
+    state->pc = state->memory[state->sp] | (state->memory[state->sp+1] << 8);    
+    state->sp += 2;
+}
+
+void call (State8080 *state, unsigned char *op_code)
+{
+    uint16_t counter = state->pc+2;    
+    state->memory[state->sp-1] = (counter >> 8) & 0xff;    
+    state->memory[state->sp-2] = (counter & 0xff);    
+    state->sp = state->sp - 2;    
+    state->pc = (op_code[2] << 8) | op_code [1];  
+}
+
+void rar(State8080 *state)
+{
+    uint8_t x = state->a;    
+    state->a = (state->cc.cy << 7) | (x >> 1);    
+    state->cc.cy = (1 == (x&1));  
+}
+
+void ani(State8080 *state, unsigned char *op_code)
+{
+    uint8_t x = state->a & op_code[1];    
+    state->cc.z = (x == 0);    
+    state->cc.s = (0x80 == (x & 0x80));    
+    state->cc.p = parity(x, 8);    
+    state->cc.cy = 0;           //Data book says ANI clears CY    
+    state->a = x;    
+    state->pc++;                //for the data byte  
+}
+
+void cpi(State8080 *state, unsigned char *op_code)
+{
+    uint8_t x = state->a - op_code[1];    
+    state->cc.z = (x == 0);    
+    state->cc.s = (0x80 == (x & 0x80));    
+    //It isn't clear in the data book what to do with p - had to pick    
+    state->cc.p = parity(x, 8);    
+    state->cc.cy = (state->a < op_code[1]);    
+    state->pc++;   
 }

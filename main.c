@@ -364,7 +364,7 @@ void unimplemented_instruction(State8080* state)
 int emulate_8080_op(State8080* state)
    {
     unsigned char *op_code = &state->memory[state->pc];
-    disassemble_8080_op(op_code, state->pc);
+    disassemble_8080_op(state->memory, state->pc);
     state->pc+=1; 
 
     switch(*op_code)
@@ -381,7 +381,15 @@ int emulate_8080_op(State8080* state)
         case 0x02: unimplemented_instruction(state); break;
         case 0x03: unimplemented_instruction(state); break;
         case 0x04: unimplemented_instruction(state); break;
-        case 0x05: unimplemented_instruction(state); break;
+        case 0x05: 
+        {
+			uint8_t sum = state->b - 1;
+			state->cc.z = (sum == 0);
+			state->cc.s = (0x80 == (sum & 0x80));
+			state->cc.p = parity(sum, 8);
+			state->b = sum;
+		} 
+        break;
         case 0x06: mvi(&state->b, op_code, &state->pc); break;
         case 0x07: unimplemented_instruction(state); break;
         case 0x08: break;
@@ -402,14 +410,25 @@ int emulate_8080_op(State8080* state)
         }
         break;
         case 0x12: unimplemented_instruction(state); break;
-        case 0x13: unimplemented_instruction(state); break;
+        case 0x13: 
+        {
+            state->e++;
+            if(state->e == 0)
+                state->d++;
+        }
+        break;
         case 0x14: unimplemented_instruction(state); break;
         case 0x15: unimplemented_instruction(state); break;
         case 0x16: mvi(&state->d, op_code, &state->pc);break;
         case 0x17: unimplemented_instruction(state); break;
         case 0x18: break;
         case 0x19: unimplemented_instruction(state); break;
-        case 0x1a: unimplemented_instruction(state); break;
+        case 0x1a:
+        {
+            uint16_t offset = (state->d << 8) | state->e;
+            state->a = state->memory[offset];
+        }
+        break;
         case 0x1b: unimplemented_instruction(state); break;
         case 0x1c: unimplemented_instruction(state); break;
         case 0x1d: unimplemented_instruction(state); break;
@@ -424,7 +443,13 @@ int emulate_8080_op(State8080* state)
         }
         break; 
         case 0x22: unimplemented_instruction(state); break;
-        case 0x23: unimplemented_instruction(state); break;
+        case 0x23: 
+        {
+            state->l++;
+            if(state->l == 0)
+                state->h++;     
+        }
+        break;
         case 0x24: unimplemented_instruction(state); break;
         case 0x25: unimplemented_instruction(state); break;
         case 0x26: mvi(&state->h, op_code, &state->pc); break;
@@ -438,7 +463,13 @@ int emulate_8080_op(State8080* state)
         case 0x2e: mvi(&state->l, op_code, &state->pc); break;
         case 0x2f: cma(&state->a); break;
         case 0x30: unimplemented_instruction(state); break;
-        case 0x31: unimplemented_instruction(state); break;
+        case 0x31: 
+        {
+            uint16_t pointer = (op_code[2]<<8) | op_code[1];
+            state->sp = pointer;
+            state->pc += 2;
+        }
+        break;
         case 0x32: unimplemented_instruction(state); break;
         case 0x33: unimplemented_instruction(state); break;
         case 0x34: unimplemented_instruction(state); break;

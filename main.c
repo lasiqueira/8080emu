@@ -33,6 +33,7 @@ int parity(int x, int size);
 State8080 initialize_state();
 void read_to_memory(State8080 *state, char *file_name);
 uint8_t* get_m(State8080 *state);
+void print_state(State8080 *state);
 //OPCODE FUNS
 void add(State8080 *state, uint8_t *reg);
 void mov(uint8_t *lhv, uint8_t *rhv);
@@ -58,7 +59,8 @@ int main(int argc, char**argv)
     int done = 0;
     State8080 state = initialize_state();
 
-    read_to_memory(&state, argv[1]);    
+    read_to_memory(&state, argv[1]); 
+    print_state(&state);   
     
     while(done == 0)
     {
@@ -354,7 +356,17 @@ int disassemble_8080_op(unsigned char *code_buffer, int pc)
 
 }
 
-
+void print_state(State8080 *state)
+{
+    printf("\t");
+	printf("%c", state->cc.z ? 'z' : '.');
+	printf("%c", state->cc.s ? 's' : '.');
+	printf("%c", state->cc.p ? 'p' : '.');
+	printf("%c", state->cc.cy ? 'c' : '.');
+	printf("%c  ", state->cc.ac ? 'a' : '.');
+	printf("A $%02x B $%02x C $%02x D $%02x E $%02x H $%02x L $%02x SP %04x\n", state->a, state->b, state->c,
+				state->d, state->e, state->h, state->l, state->sp);
+}
 void unimplemented_instruction(State8080* state)
 {
     //pc will have advanced one, so undo that
@@ -811,7 +823,7 @@ int emulate_8080_op(State8080* state)
         case 0xfe: cpi(state, op_code); break;
         case 0xff: unimplemented_instruction(state); break;
     }
-    
+    print_state(state);
     return 0;
 }
 
@@ -832,6 +844,7 @@ State8080 initialize_state()
 {
     State8080 state;
     state.memory = malloc(0x10000);
+    state.sp = 0xffff;
     return state;
 }
 void read_to_memory(State8080 *state, char *file_name)

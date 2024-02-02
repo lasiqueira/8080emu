@@ -51,6 +51,7 @@ void cpi(State8080 *state, unsigned char *op_code);
 void xchg(State8080 *state);
 void out(State8080 *state, unsigned char *op_code);
 void ei(State8080 *state);
+void di(State8080 *state);
 
 int main(int argc, char**argv)
 {
@@ -785,7 +786,7 @@ int emulate_8080_op(State8080* state)
         }    
         break;
         case 0xf2: unimplemented_instruction(state); break;
-        case 0xf3: unimplemented_instruction(state); break;
+        case 0xf3: di(state); break;
         case 0xf4: unimplemented_instruction(state); break;
         case 0xf5: 
         {    
@@ -983,4 +984,9 @@ void out(State8080 *state, unsigned char *op_code)
 void ei(State8080 *state)
 {
     state->int_enable = 1;
+}
+
+void di(State8080 *state)
+{
+    state->int_enable = 0;
 }

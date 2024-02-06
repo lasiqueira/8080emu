@@ -53,6 +53,11 @@ void xchg(State8080 *state);
 void out(State8080 *state, unsigned char *op_code);
 void ei(State8080 *state);
 void di(State8080 *state);
+void in(State8080 *state, unsigned char *op_code);
+
+//SPACE INVADERS
+void hw_in(State8080 *state, unsigned char *op_code);
+void hw_out(State8080 *state, unsigned char *op_code);
 
 int main(int argc, char**argv)
 {
@@ -64,7 +69,21 @@ int main(int argc, char**argv)
     
     while(done == 0)
     {
-        done= emulate_8080_op(&state);
+        //SPACE INVADERS I/O handling
+        uint8_t *op_code= &state.memory[state.pc];
+        if(*op_code == 0xdb)
+        {
+            hw_in(&state, op_code);
+        } 
+        else if(*op_code == 0xd3)
+        {
+            hw_out(&state, op_code);
+        } 
+        else
+        {
+            done= emulate_8080_op(&state);
+        }
+        
     }
 
     return 0;
@@ -749,7 +768,7 @@ int emulate_8080_op(State8080* state)
         case 0xd8: unimplemented_instruction(state); break;
         case 0xd9: break;
         case 0xda: unimplemented_instruction(state); break;
-        case 0xdb: unimplemented_instruction(state); break;
+        case 0xdb: in(state, op_code); break;
         case 0xdc: unimplemented_instruction(state); break;
         case 0xdd: break;
         case 0xde: unimplemented_instruction(state); break;
@@ -990,7 +1009,8 @@ void xchg(State8080 *state)
 
 void out(State8080 *state, unsigned char *op_code)
 {
-    //TODO output state->a to port op_code[1] ???
+    //unsure about this
+    //state->memory[op_code[1]] = state->a;
     state->pc +=1;
 }
 
@@ -1003,3 +1023,38 @@ void di(State8080 *state)
 {
     state->int_enable = 0;
 }
+void in(State8080 *state, unsigned char *op_code)
+{
+    //unsure about this
+    //state->a = state->memory[op_code[1]];
+    state->pc +=1;
+}
+
+
+//SPACE INVADERS
+void hw_in(State8080 *state, unsigned char *op_code) //TODO
+{
+    switch(op_code[1])
+    {
+        case 0x00: break;
+        case 0x01: break;
+        case 0x02: break;
+        case 0x03: break;
+    }
+    state->pc+=1;
+}
+
+void hw_out(State8080 *state, unsigned char *op_code) // TODO
+{
+    switch(op_code[1])
+    {    
+        case 0x02: break;
+        case 0x03: break;
+        case 0x04: break;
+        case 0x05: break;
+        case 0x06: break;
+    }
+    state->pc+=1;
+}
+
+//TODO shift reg

@@ -24,6 +24,13 @@ typedef struct State8080{
     struct ConditionCodes cc;
     uint8_t int_enable;
 } State8080;
+
+typedef struct Shifter{
+    uint8_t shift0;
+    uint8_t shift1;
+    uint8_t offset;
+} Shifter;
+
 //EMU
 int disassemble_8080_op(unsigned char *code_buffer, int pos);
 void unimplemented_instruction(State8080* state);
@@ -56,14 +63,14 @@ void di(State8080 *state);
 void in(State8080 *state, unsigned char *op_code);
 
 //SPACE INVADERS
-void hw_in(State8080 *state, unsigned char *op_code);
-void hw_out(State8080 *state, unsigned char *op_code);
+void hw_in(State8080 *state, Shifter *shifter, unsigned char *op_code);
+void hw_out(State8080 *state, Shifter *shifter, unsigned char *op_code);
 
 int main(int argc, char**argv)
 {
     int done = 0;
     State8080 state = initialize_state();
-
+    Shifter shifter;
     read_to_memory(&state, argv[1]); 
     print_state(&state);   
     
@@ -73,11 +80,11 @@ int main(int argc, char**argv)
         uint8_t *op_code= &state.memory[state.pc];
         if(*op_code == 0xdb)
         {
-            hw_in(&state, op_code);
+            hw_in(&state, &shifter, op_code);
         } 
         else if(*op_code == 0xd3)
         {
-            hw_out(&state, op_code);
+            hw_out(&state, &shifter, op_code);
         } 
         else
         {
@@ -1032,29 +1039,35 @@ void in(State8080 *state, unsigned char *op_code)
 
 
 //SPACE INVADERS
-void hw_in(State8080 *state, unsigned char *op_code) //TODO
+void hw_in(State8080 *state, Shifter *shifter, unsigned char *op_code)
 {
     switch(op_code[1])
     {
-        case 0x00: break;
-        case 0x01: break;
-        case 0x02: break;
-        case 0x03: break;
+        case 0x00: break; //TODO
+        case 0x01: break; //TODO
+        case 0x02: break; //TODO
+        case 0x03: 
+        uint16_t v = (shifter->shift1<<8) | shifter->shift0;
+        state->a = ((v >> (8-shifter->offset)) && 0xff); 
+        break;
     }
     state->pc+=1;
 }
 
-void hw_out(State8080 *state, unsigned char *op_code) // TODO
+void hw_out(State8080 *state, Shifter *shifter, unsigned char *op_code)
 {
     switch(op_code[1])
     {    
-        case 0x02: break;
-        case 0x03: break;
-        case 0x04: break;
-        case 0x05: break;
-        case 0x06: break;
+        case 0x02: 
+        shifter-> offset = state->a & 0x7; //bits 012
+        break;
+        case 0x03: break; //TODO
+        case 0x04: 
+        shifter->shift0 = shifter->shift1;
+        shifter->shift1 = state->a;
+        break;
+        case 0x05: break; //TODO
+        case 0x06: break; //TODO
     }
     state->pc+=1;
 }
-
-//TODO shift reg

@@ -1,7 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <SDL2/SDL.h>
 
-typedef struct ConditionCodes{
+//TODO separate into files and create makefile
+
+typedef struct ConditionCodes {
     uint8_t z:1;
     uint8_t s:1;
     uint8_t p:1;
@@ -10,7 +13,7 @@ typedef struct ConditionCodes{
     uint8_t pad:3;
 }ConditionCodes;
 
-typedef struct State8080{
+typedef struct State8080 {
     uint8_t a;
     uint8_t b;
     uint8_t c;
@@ -25,11 +28,26 @@ typedef struct State8080{
     uint8_t int_enable;
 } State8080;
 
-typedef struct Shifter{
+typedef struct Shifter {
     uint8_t shift0;
     uint8_t shift1;
     uint8_t offset;
 } Shifter;
+
+typedef struct Ports {
+    uint8_t port_0;
+    uint8_t port_1;
+    uint8_t port_2;
+    uint8_t port_3;
+    uint8_t port_4;
+    uint8_t port_5;
+    uint8_t port_6;
+} Ports;
+
+typedef struct Hardware {
+    Shifter shifter;
+    Ports ports;
+} Hardware;
 
 //EMU
 int disassemble_8080_op(unsigned char *code_buffer, int pos);
@@ -63,28 +81,30 @@ void di(State8080 *state);
 void in(State8080 *state, unsigned char *op_code);
 
 //SPACE INVADERS
-void hw_in(State8080 *state, Shifter *shifter, unsigned char *op_code);
-void hw_out(State8080 *state, Shifter *shifter, unsigned char *op_code);
+void hw_in(State8080 *state, Hardware *hardware, unsigned char *op_code);
+void hw_out(State8080 *state, Hardware *hardware, unsigned char *op_code);
+void handle_input(Ports *ports);
 
 int main(int argc, char**argv)
 {
     int done = 0;
     State8080 state = initialize_state();
-    Shifter shifter;
+    Hardware hardware = {0};
     read_to_memory(&state, argv[1]); 
     print_state(&state);   
     
     while(done == 0)
-    {
+    {   
+        handle_input(&hardware.ports);
         //SPACE INVADERS I/O handling
         uint8_t *op_code= &state.memory[state.pc];
         if(*op_code == 0xdb)
         {
-            hw_in(&state, &shifter, op_code);
+            hw_in(&state, &hardware, op_code);
         } 
         else if(*op_code == 0xd3)
         {
-            hw_out(&state, &shifter, op_code);
+            hw_out(&state, &hardware, op_code);
         } 
         else
         {
@@ -868,7 +888,7 @@ int parity(int x, int size)
 //STATE
 State8080 initialize_state()
 {
-    State8080 state;
+    State8080 state = {0};
     state.memory = malloc(0x10000);
     state.sp = 0xffff;
     return state;
@@ -1039,35 +1059,126 @@ void in(State8080 *state, unsigned char *op_code)
 
 
 //SPACE INVADERS
-void hw_in(State8080 *state, Shifter *shifter, unsigned char *op_code)
+void hw_in(State8080 *state, Hardware *hardware, unsigned char *op_code)
 {
     switch(op_code[1])
     {
-        case 0x00: break; //TODO
-        case 0x01: break; //TODO
-        case 0x02: break; //TODO
+        case 0x00: 
+        state->a = hardware->ports.port_0;
+        break;
+        case 0x01: 
+        state->a = hardware->ports.port_1;
+        break;
+        case 0x02: 
+        state->a = hardware->ports.port_2;
+        break;
         case 0x03: 
-        uint16_t v = (shifter->shift1<<8) | shifter->shift0;
-        state->a = ((v >> (8-shifter->offset)) && 0xff); 
+        uint16_t v = (hardware->shifter.shift1<<8) | hardware->shifter.shift0;
+        state->a = ((v >> (8- hardware->shifter.offset)) && 0xff); 
         break;
     }
     state->pc+=1;
 }
 
-void hw_out(State8080 *state, Shifter *shifter, unsigned char *op_code)
+void hw_out(State8080 *state, Hardware *hardware, unsigned char *op_code)
 {
     switch(op_code[1])
     {    
         case 0x02: 
-        shifter-> offset = state->a & 0x7; //bits 012
+        hardware->shifter.offset = state->a & 0x7; //bits 012
         break;
-        case 0x03: break; //TODO
+        case 0x03: 
+        hardware->ports.port_3 = state->a;
+        break;
         case 0x04: 
-        shifter->shift0 = shifter->shift1;
-        shifter->shift1 = state->a;
+        hardware->shifter.shift0 = hardware->shifter.shift1;
+        hardware->shifter.shift1 = state->a;
         break;
-        case 0x05: break; //TODO
-        case 0x06: break; //TODO
+        case 0x05: 
+        hardware->ports.port_5 = state->a;
+        break;
+        case 0x06: break;
     }
     state->pc+=1;
+}
+
+void handle_input(Ports *ports)
+{
+    
+    SDL_Event event;
+    while(SDL_PollEvent(&event))
+    {
+
+        if(event.type == SDL_KEYDOWN)
+        {   
+            switch(event.key.keysym.sym)
+            {
+                case SDLK_c:  // Insert coin
+                    ports->port_1 |= 1;
+                    break;
+                case SDLK_s:  // P1 Start
+                    ports->port_1 |= 1 << 2;
+                    break;
+                case SDLK_w: // P1 Shoot
+                    ports->port_1 |= 1 << 4;
+                    break;
+                case SDLK_a: // P1 Move Left
+                    ports->port_1 |= 1 << 5;
+                    break;
+                case SDLK_d: // P1 Move Right
+                    ports->port_1 |= 1 << 6;
+                    break;
+                case SDLK_LEFT: // P2 Move Left
+                    ports->port_2 |= 1 << 5;
+                    break;
+                case SDLK_RIGHT: // P2 Move Right
+                    ports->port_2 |= 1 << 6;
+                    break;
+                case SDLK_RETURN: // P2 Start
+                    ports->port_1 |= 1 << 1;
+                    break;
+                case SDLK_UP: // P2 Shoot
+                    ports->port_2 |= 1 << 4;
+                    break;
+            }
+        }
+        if(event.type == SDL_KEYDOWN)
+        {
+            switch(event.key.keysym.sym)
+            {
+                case SDLK_c:  // Insert coin
+                    ports->port_1 &= ~1;
+                    break;
+                case SDLK_s:  // P1 Start
+                    ports->port_1 &= ~(1 << 2);
+                    break;
+                case SDLK_w: // P1 Shoot
+                    ports->port_1 &= ~(1 << 4);
+                    break;
+                case SDLK_a: // P1 Move Left
+                    ports->port_1 &= ~(1 << 5);
+                    break;
+                case SDLK_d: // P1 Move Right
+                    ports->port_1 &= ~(1 << 6);
+                    break;
+                case SDLK_LEFT: // P2 Move Left
+                    ports->port_2 &= ~(1 << 5);
+                    break;
+                case SDLK_RIGHT: // P2 Move Right
+                    ports->port_2 &= ~(1 << 6);
+                    break;
+                case SDLK_RETURN: // P2 Start
+                    ports->port_1 &= ~(1 << 1);
+                    break;
+                case SDLK_UP: // P2 Shoot
+                    ports->port_2 &= ~(1 << 4);
+                    break;
+            }
+        }
+        if(event.type == SDL_QUIT)
+        {
+            exit(0);
+        }
+    }
+
 }

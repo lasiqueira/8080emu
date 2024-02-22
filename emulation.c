@@ -1,6 +1,5 @@
+#include <stdio.h>
 #include "emulation.h"
-#include "cpu.h"
-
 //EMU
 int disassemble_8080_op(unsigned char *code_buffer, int pc)
 {

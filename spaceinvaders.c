@@ -1,5 +1,4 @@
 #include <SDL2/SDL.h>
-#include "cpu.h"
 #include "emulation.h"
 #include "spaceinvaders.h"
 

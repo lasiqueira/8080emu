@@ -2,8 +2,6 @@
 #include "emulation.h"
 #include "spaceinvaders.h"
 
-//TODO create makefile
-
 int main(int argc, char**argv)
 {
     int done = 0;

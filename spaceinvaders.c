@@ -51,9 +51,10 @@ void hw_in(State8080 *state, Hardware *hardware, unsigned char *op_code)
         case 0x02: 
         state->a = hardware->ports.port_2;
         break;
-        case 0x03: 
+        case 0x03:{ 
         uint16_t v = (hardware->shifter.shift1<<8) | hardware->shifter.shift0;
-        state->a = ((v >> (8- hardware->shifter.offset)) && 0xff); 
+        state->a = ((v >> (8- hardware->shifter.offset)) & 0xff); 
+        }
         break;
     }
     state->pc+=1;

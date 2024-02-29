@@ -1,5 +1,6 @@
 #include <stdlib.h>
-
+#ifndef _CPU_H
+#define _CPU_H
 typedef struct ConditionCodes {
     uint8_t z:1;
     uint8_t s:1;
@@ -28,3 +29,4 @@ State8080 initialize_state();
 void read_to_memory(State8080 *state, char *file_name);
 uint8_t* get_m(State8080 *state);
 void print_state(State8080 *state);
+#endif

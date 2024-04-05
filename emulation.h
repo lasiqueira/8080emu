@@ -27,3 +27,4 @@ void out(State8080 *state, unsigned char *op_code);
 void ei(State8080 *state);
 void di(State8080 *state);
 void in(State8080 *state, unsigned char *op_code);
+void push(State8080 *state, uint8_t val1, uint8_t val2);

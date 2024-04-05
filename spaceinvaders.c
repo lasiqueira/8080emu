@@ -1,4 +1,5 @@
 #include <SDL2/SDL.h>
+#include <time.h>
 #include "emulation.h"
 #include "spaceinvaders.h"
 
@@ -9,7 +10,8 @@ int main(int argc, char**argv)
     Hardware hardware = {0};
     read_to_memory(&state, argv[1]); 
     print_state(&state);   
-    
+    SDL_Init(SDL_INIT_EVERYTHING);
+    time_t last_interrupt = 0;
     while(done == 0)
     {   
         handle_input(&hardware.ports);
@@ -27,9 +29,18 @@ int main(int argc, char**argv)
         {
             done= emulate_8080_op(&state);
         }
+
+        if(time(NULL) - last_interrupt > 1.0/60.0)
+        {
+            if(state.int_enable)
+            {
+                generate_interrupt(&state, 2);
+                last_interrupt = time(NULL);
+            }
+        }
         
     }
-
+    SDL_Quit();
     return 0;
 }
 
@@ -38,6 +49,7 @@ int main(int argc, char**argv)
 //SPACE INVADERS
 void hw_in(State8080 *state, Hardware *hardware, unsigned char *op_code)
 {
+    printf("-----HWIN-----\n");
     switch(op_code[1])
     {
         case 0x00: 
@@ -60,6 +72,7 @@ void hw_in(State8080 *state, Hardware *hardware, unsigned char *op_code)
 
 void hw_out(State8080 *state, Hardware *hardware, unsigned char *op_code)
 {
+    printf("-----HWOUT-----\n");
     switch(op_code[1])
     {    
         case 0x02: 
@@ -85,8 +98,7 @@ void handle_input(Ports *ports)
     
     SDL_Event event;
     while(SDL_PollEvent(&event))
-    {
-
+    {   
         if(event.type == SDL_KEYDOWN)
         {   
             switch(event.key.keysym.sym)
@@ -120,7 +132,7 @@ void handle_input(Ports *ports)
                     break;
             }
         }
-        if(event.type == SDL_KEYDOWN)
+        if(event.type == SDL_KEYUP)
         {
             switch(event.key.keysym.sym)
             {
@@ -159,4 +171,10 @@ void handle_input(Ports *ports)
         }
     }
 
+}
+
+void generate_interrupt(State8080 *state, int interrupt_num)
+{
+   push(state, (uint8_t)(state->pc & 0xff00) >> 8, (uint8_t)(state->pc & 0xff));
+   state->pc = 8 * interrupt_num;
 }

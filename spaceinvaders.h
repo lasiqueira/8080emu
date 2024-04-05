@@ -25,3 +25,4 @@ typedef struct Hardware {
 void hw_in(State8080 *state, Hardware *hardware, unsigned char *op_code);
 void hw_out(State8080 *state, Hardware *hardware, unsigned char *op_code);
 void handle_input(Ports *ports);
+void generate_interrupt(State8080 *state, int interrupt_num);

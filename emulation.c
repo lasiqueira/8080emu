@@ -628,13 +628,7 @@ int emulate_8080_op(State8080* state)
         case 0xc2: jnz(state, op_code); break;   
         case 0xc3: jmp(&state->pc, op_code); break;
         case 0xc4: unimplemented_instruction(state); break;
-        case 0xc5: 
-        {
-            state->memory[state->sp-1] = state->b;    
-            state->memory[state->sp-2] = state->c;    
-            state->sp = state->sp - 2;    
-        }    
-        break;
+        case 0xc5: push(state, state->b, state->c); break;
         case 0xc6: adi(state, op_code); break;
         case 0xc7: unimplemented_instruction(state); break;
         case 0xc8: unimplemented_instruction(state); break;
@@ -657,13 +651,7 @@ int emulate_8080_op(State8080* state)
         case 0xd2: unimplemented_instruction(state); break;
         case 0xd3: out(state, op_code); break;
         case 0xd4: unimplemented_instruction(state); break;
-        case 0xd5: 
-        {
-            state->memory[state->sp-1] = state->d;
-            state->memory[state->sp-2] = state->e;
-            state->sp -=2;
-        }
-        break;
+        case 0xd5: push(state, state->d, state->e); break;
         case 0xd6: unimplemented_instruction(state); break;
         case 0xd7: unimplemented_instruction(state); break;
         case 0xd8: unimplemented_instruction(state); break;
@@ -686,13 +674,7 @@ int emulate_8080_op(State8080* state)
         case 0xe2: unimplemented_instruction(state); break;
         case 0xe3: unimplemented_instruction(state); break;
         case 0xe4: unimplemented_instruction(state); break;
-        case 0xe5: 
-        {
-            state->memory[state->sp -1] = state->h;
-            state->memory[state->sp -2] = state->l;
-            state->sp -=2;
-        }
-        break;
+        case 0xe5: push(state, state->h, state->l); break;
         case 0xe6: ani(state, op_code); break;
         case 0xe7: unimplemented_instruction(state); break;
         case 0xe8: unimplemented_instruction(state); break;
@@ -722,14 +704,12 @@ int emulate_8080_op(State8080* state)
         case 0xf4: unimplemented_instruction(state); break;
         case 0xf5: 
         {    
-            state->memory[state->sp-1] = state->a;    
             uint8_t psw = (state->cc.z |    
                             state->cc.s << 1 |    
                             state->cc.p << 2 |    
                             state->cc.cy << 3 |    
-                            state->cc.ac << 4 );    
-            state->memory[state->sp-2] = psw;    
-            state->sp = state->sp - 2;    
+                            state->cc.ac << 4 );     
+            push(state, state->a, psw);    
         } 
         break;
         case 0xf6: unimplemented_instruction(state); break;
@@ -899,4 +879,11 @@ void in(State8080 *state, unsigned char *op_code)
     //unsure about this
     //state->a = state->memory[op_code[1]];
     state->pc +=1;
+}
+
+void push(State8080 *state, uint8_t val1, uint8_t val2)
+{
+    state->memory[state->sp-1] = val1;    
+    state->memory[state->sp-2] = val2;    
+    state->sp = state->sp - 2;   
 }

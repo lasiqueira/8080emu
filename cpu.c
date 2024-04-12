@@ -10,7 +10,7 @@ void print_state(State8080 *state)
 	printf("%c", state->cc.p ? 'p' : '.');
 	printf("%c", state->cc.cy ? 'c' : '.');
 	printf("%c  ", state->cc.ac ? 'a' : '.');
-	printf("A $%02x B $%02x C $%02x D $%02x E $%02x H $%02x L $%02x SP %04x\n", state->a, state->b, state->c,
+	printf("A $%02x B $%02x C $%02x D $%02x E $%02x H $%02x L $%02x SP $%04x\n", state->a, state->b, state->c,
 				state->d, state->e, state->h, state->l, state->sp);
 }
 

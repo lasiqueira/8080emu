@@ -18,11 +18,12 @@ typedef struct Ports {
 } Ports;
 
 typedef struct Hardware {
+    State8080 state;
     Shifter shifter;
     Ports ports;
 } Hardware;
 
-void hw_in(State8080 *state, Hardware *hardware, unsigned char *op_code);
-void hw_out(State8080 *state, Hardware *hardware, unsigned char *op_code);
+void hw_in(Hardware *hardware, unsigned char *op_code);
+void hw_out(Hardware *hardware, unsigned char *op_code);
 void handle_input(Ports *ports);
 void generate_interrupt(State8080 *state, int interrupt_num);

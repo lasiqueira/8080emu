@@ -4,7 +4,7 @@
 #include "spaceinvaders.h"
 
 #define SCREEN_WIDTH  224
-#define SCREEN_HEIGHT  600
+#define SCREEN_HEIGHT  256
 #define FILE1 "rom/invaders.h"
 #define FILE2 "rom/invaders.g"
 #define FILE3 "rom/invaders.f"

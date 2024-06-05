@@ -24,9 +24,10 @@ typedef struct Hardware {
     uint8_t* screen_buffer;
 } Hardware;
 
-void hw_in(Hardware *hardware, unsigned char *op_code);
-void hw_out(Hardware *hardware, unsigned char *op_code);
+void hw_in(unsigned char *op_code);
+void hw_out(unsigned char *op_code);
 void handle_input(Ports *ports);
 void generate_interrupt(State8080 *state, int interrupt_num);
 void init();
 void quit();
+uint16_t si_memory_mapping(uint16_t address);

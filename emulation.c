@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include "emulation.h"
+//should I move emulation to cpu?
 //EMU
+
+
+
 int disassemble_8080_op(unsigned char *code_buffer, int pc)
 {
     unsigned char *code = &code_buffer[pc];
@@ -386,7 +390,8 @@ int emulate_8080_op(State8080* state)
         case 0x1a:
         {
             uint16_t offset = (state->d << 8) | state->e;
-            state->a = state->memory[offset];
+            
+            state->a = state->memory[(*memory_mapping)(offset)];
         }
         break;
         case 0x1b: unimplemented_instruction(state); break;
@@ -441,7 +446,7 @@ int emulate_8080_op(State8080* state)
         case 0x32: 
         {    
             uint16_t offset = (op_code[2]<<8) | (op_code[1]);
-			state->memory[offset] = state->a;
+			state->memory[(*memory_mapping)(offset)] = state->a;
 			state->pc+=2;
         }
         break;
@@ -455,7 +460,7 @@ int emulate_8080_op(State8080* state)
         case 0x3a: 
         {
 			uint16_t offset = (op_code[2]<<8) | (op_code[1]);
-			state->a = state->memory[offset];
+			state->a = state->memory[(*memory_mapping)(offset)];
 			state->pc+=2;
 		}
         break;
@@ -860,9 +865,8 @@ void xchg(State8080 *state)
 
 void out(State8080 *state, unsigned char *op_code)
 {
-    //unsure about this
-    //state->memory[op_code[1]] = state->a;
-    state->pc +=1;
+    (*out_ptr)(op_code);
+    state->pc += 1;
 }
 
 void ei(State8080 *state)
@@ -876,9 +880,8 @@ void di(State8080 *state)
 }
 void in(State8080 *state, unsigned char *op_code)
 {
-    //unsure about this
-    //state->a = state->memory[op_code[1]];
-    state->pc +=1;
+    (*in_ptr)(op_code);
+    state->pc += 1;
 }
 
 void push(State8080 *state, uint8_t val1, uint8_t val2)

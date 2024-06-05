@@ -391,7 +391,7 @@ int emulate_8080_op(State8080* state)
         {
             uint16_t offset = (state->d << 8) | state->e;
             
-            state->a = state->memory[(*memory_mapping)(offset)];
+            state->a = state->memory[(*memory_mapping_ptr)(offset)];
         }
         break;
         case 0x1b: unimplemented_instruction(state); break;
@@ -446,7 +446,7 @@ int emulate_8080_op(State8080* state)
         case 0x32: 
         {    
             uint16_t offset = (op_code[2]<<8) | (op_code[1]);
-			state->memory[(*memory_mapping)(offset)] = state->a;
+			state->memory[(*memory_mapping_ptr)(offset)] = state->a;
 			state->pc+=2;
         }
         break;
@@ -460,7 +460,7 @@ int emulate_8080_op(State8080* state)
         case 0x3a: 
         {
 			uint16_t offset = (op_code[2]<<8) | (op_code[1]);
-			state->a = state->memory[(*memory_mapping)(offset)];
+			state->a = state->memory[(*memory_mapping_ptr)(offset)];
 			state->pc+=2;
 		}
         break;

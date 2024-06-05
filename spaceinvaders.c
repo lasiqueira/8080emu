@@ -5,10 +5,15 @@
 
 #define SCREEN_WIDTH  224
 #define SCREEN_HEIGHT  256
+
 #define FILE1 "rom/invaders.h"
 #define FILE2 "rom/invaders.g"
 #define FILE3 "rom/invaders.f"
 #define FILE4 "rom/invaders.e"
+
+#define RAM_ADDR 0x2000
+#define RAM_MIRROR_ADDR 0x4000
+#define VRAM_ADDR 0x2400
 
 Hardware g_hardware;
 SDL_Renderer *g_renderer;
@@ -43,7 +48,7 @@ int main(int argc, char**argv)
                 last_interrupt = time(NULL);
             }
         }
-        //TODO render
+        //TODO render at VBLANK
         
     }
    
@@ -269,9 +274,9 @@ void quit()
 
 uint16_t si_memory_mapping(uint16_t address)
 {
-	if(address >= 0x4000)
+	if(address >= RAM_MIRROR_ADDR)
 	{
-        address = 0x2000 + (address & 0x1FFF);
+        address = RAM_ADDR + (address & 0x1FFF);
 	}
 	return address;
 }

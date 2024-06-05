@@ -3,99 +3,63 @@
 #include "emulation.h"
 #include "spaceinvaders.h"
 
-#define SCREEN_WIDTH  800
+#define SCREEN_WIDTH  224
 #define SCREEN_HEIGHT  600
+#define FILE1 "rom/invaders.h"
+#define FILE2 "rom/invaders.g"
+#define FILE3 "rom/invaders.f"
+#define FILE4 "rom/invaders.e"
+
+Hardware g_hardware;
+SDL_Renderer *g_renderer;
+SDL_Window *g_window;
+SDL_Texture *g_texture;
 
 
 int main(int argc, char**argv)
 {
     int done = 0;
-    Hardware hardware = {0};
-    hardware.state = initialize_state();
+    
+    init();
+
     time_t last_interrupt = 0;
-    read_to_memory(&hardware.state, argv[1]); 
-    print_state(&hardware.state);   
     
-    if(SDL_Init(SDL_INIT_VIDEO) != 0)
-    {
-        SDL_Log("Failed to initialise SDL: %s", SDL_GetError());
-        return 1;
-    }
+    print_state(&g_hardware.state);   
     
-    SDL_Window *window = SDL_CreateWindow(
-        "Space Invaders",
-          SDL_WINDOWPOS_CENTERED,
-          SDL_WINDOWPOS_CENTERED,
-           SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-    
-
-    if(window == NULL)
-    {
-        SDL_Log("Failed to create window: %s", SDL_GetError());
-        return 1;
-    }
-    SDL_SetWindowMinimumSize(window, SCREEN_WIDTH, SCREEN_HEIGHT);
-
-    SDL_Renderer *renderer = SDL_CreateRenderer(
-        window,
-         -1,
-         SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
-         );
-    if(renderer == NULL)
-    {
-        SDL_Log("Failed to create renderer: %s", SDL_GetError());
-        return 1;
-    }
-
-    SDL_RenderSetLogicalSize(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
-
-    SDL_Texture *texture = SDL_CreateTexture(
-        renderer,
-        SDL_PIXELFORMAT_RGBA32,
-        SDL_TEXTUREACCESS_STREAMING,
-        SCREEN_WIDTH,
-        SCREEN_HEIGHT
-    );
-
-    if(texture == NULL)
-    {
-        SDL_Log("Failed to create texture: %s", SDL_GetError());
-        return 1;
-    }
-
     while(done == 0)
     {   
-        handle_input(&hardware.ports);
-        //SPACE INVADERS I/O handling
-        uint8_t *op_code= &hardware.state.memory[hardware.state.pc];
+        handle_input(&g_hardware.ports);
+
+        uint8_t *op_code= &g_hardware.state.memory[g_hardware.state.pc];
+        
+
         if(*op_code == 0xdb)
         {
-            hw_in(&hardware, op_code);
+            hw_in(&g_hardware, op_code);
         } 
         else if(*op_code == 0xd3)
         {
-            hw_out(&hardware, op_code);
+            hw_out(&g_hardware, op_code);
         } 
         else
         {
-            done= emulate_8080_op(&hardware.state);
+            done= emulate_8080_op(&g_hardware.state);
         }
 
         if(time(NULL) - last_interrupt > 1.0/60.0)
         {
-            if(hardware.state.int_enable)
+            if(g_hardware.state.int_enable)
             {
-                generate_interrupt(&hardware.state, 2);
+                generate_interrupt(&g_hardware.state, 2);
                 last_interrupt = time(NULL);
             }
         }
+        //TODO deal with mirrored memory when address >= 0x4000 (read and write address in certain opcodes). Deal externally? Modify emulation behaviour? Use function pointer?
+        //TODO render
         
     }
-
-    SDL_DestroyTexture(texture);
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    SDL_Quit();
+   
+    quit();
 
     return 0;
 }
@@ -103,6 +67,7 @@ int main(int argc, char**argv)
 
 
 //SPACE INVADERS
+//because hardware is now global, could this potentially be a function pointer and then it gets handled in the emulation loop? emulation doesn't have acccess to hardware, would it work?
 void hw_in(Hardware *hardware, unsigned char *op_code)
 {
     printf("-----HWIN-----\n");
@@ -233,4 +198,78 @@ void generate_interrupt(State8080 *state, int interrupt_num)
 {
    push(state, (uint8_t)(state->pc & 0xff00) >> 8, (uint8_t)(state->pc & 0xff));
    state->pc = 8 * interrupt_num;
+}
+
+
+void init() {
+   //Initiating hardware
+    g_hardware.state = initialize_state();
+    //space invaders mirrors the memory in addresses above 0x4000 and we will handle by moving the address back if >= 0x4000
+    g_hardware.state.memory = (uint8_t*)malloc(0x4000);
+    //TODO allocate buffer for screen
+    read_rom_to_memory(&g_hardware.state, FILE1, 0x0000);
+    read_rom_to_memory(&g_hardware.state, FILE2, 0x0800);
+    read_rom_to_memory(&g_hardware.state, FILE3, 0x1000);
+    read_rom_to_memory(&g_hardware.state, FILE4, 0x1800);
+
+    //Initiating SDL
+
+    if (SDL_Init(SDL_INIT_VIDEO) != 0)
+    {
+        SDL_Log("Failed to initialise SDL: %s", SDL_GetError());
+        exit(1);
+    }
+
+    g_window = SDL_CreateWindow(
+        "Space Invaders",
+        SDL_WINDOWPOS_CENTERED,
+        SDL_WINDOWPOS_CENTERED,
+        SCREEN_WIDTH*2, SCREEN_HEIGHT*2, SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+
+
+    if (g_window == NULL)
+    {
+        SDL_Log("Failed to create window: %s", SDL_GetError());
+        exit(1);
+    }
+    SDL_SetWindowMinimumSize(g_window, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+   g_renderer = SDL_CreateRenderer(
+        g_window,
+        -1,
+        SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
+    );
+    if (g_renderer == NULL)
+    {
+        SDL_Log("Failed to create renderer: %s", SDL_GetError());
+        exit(1);
+    }
+
+    SDL_RenderSetLogicalSize(g_renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+    g_texture = SDL_CreateTexture(
+        g_renderer,
+        SDL_PIXELFORMAT_RGBA32,
+        SDL_TEXTUREACCESS_STREAMING,
+        SCREEN_WIDTH,
+        SCREEN_HEIGHT
+    );
+
+    if (g_texture == NULL)
+    {
+        SDL_Log("Failed to create texture: %s", SDL_GetError());
+        exit(1);
+    }
+
+
+}
+void quit()
+{   
+	free(g_hardware.state.memory);
+    //free(g_hardware->screen_buffer);
+    SDL_DestroyTexture(g_texture);
+    SDL_DestroyRenderer(g_renderer);
+    SDL_DestroyWindow(g_window);
+	SDL_Quit();
+	exit(0);
 }

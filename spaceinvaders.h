@@ -21,9 +21,12 @@ typedef struct Hardware {
     State8080 state;
     Shifter shifter;
     Ports ports;
+    uint8_t* screen_buffer;
 } Hardware;
 
 void hw_in(Hardware *hardware, unsigned char *op_code);
 void hw_out(Hardware *hardware, unsigned char *op_code);
 void handle_input(Ports *ports);
 void generate_interrupt(State8080 *state, int interrupt_num);
+void init();
+void quit();

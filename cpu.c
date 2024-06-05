@@ -17,14 +17,14 @@ void print_state(State8080 *state)
 State8080 initialize_state()
 {
     State8080 state = {0};
-    state.memory = malloc(0x10000);
-    state.sp = 0xffff;
+    state.memory = NULL;
+    state.sp = 0x23ff;
     return state;
 }
 
-void read_to_memory(State8080 *state, char *file_name)
+void read_rom_to_memory(State8080* state, char *file_name, int position)
 {
-     FILE *file = fopen(file_name, "rb");
+    FILE *file = fopen(file_name, "rb");
     if(file == NULL)
     {
         printf("error: Could't open %s\n", file_name);
@@ -34,7 +34,7 @@ void read_to_memory(State8080 *state, char *file_name)
     fseek(file, 0L, SEEK_END);
     int file_size = ftell(file);
     fseek(file, 0L, SEEK_SET);
-    fread(state->memory, file_size, 1, file);
+    fread(&state->memory[position], file_size, 1, file);
     fclose(file);
 }
 

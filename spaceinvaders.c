@@ -193,10 +193,10 @@ void init() {
     g_hardware.state = initialize_state();
     //space invaders mirrors the memory in addresses above 0x4000 and we will handle by moving the address back if >= 0x4000
     g_hardware.state.memory = (uint8_t*)malloc(0x4000);
-    // intiate function pointers
+    // initiate function pointers
     in_ptr = &hw_in;
     out_ptr = &hw_out;
-    memory_mapping = &si_memory_mapping;
+    memory_mapping_ptr = &si_memory_mapping;
 
     //TODO allocate buffer for screen
     read_rom_to_memory(&g_hardware.state, FILE1, 0x0000);

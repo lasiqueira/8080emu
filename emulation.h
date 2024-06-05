@@ -30,4 +30,4 @@ void in(State8080 *state, unsigned char *op_code);
 void push(State8080 *state, uint8_t val1, uint8_t val2);
 void (*in_ptr)(unsigned char*);
 void (*out_ptr)(unsigned char*);
-uint16_t(*memory_mapping)(uint16_t);
+uint16_t(*memory_mapping_ptr)(uint16_t);

@@ -1,7 +1,7 @@
 #include <SDL2/SDL.h>
-#include <time.h>
 #include "emulation.h"
 #include "spaceinvaders.h"
+#include <stdbool.h>
 
 #define SCREEN_WIDTH  224
 #define SCREEN_HEIGHT  256
@@ -15,11 +15,13 @@
 #define RAM_MIRROR_ADDR 0x4000
 #define VRAM_ADDR 0x2400
 
+#define FRAME_RATE 60
+
 Hardware g_hardware;
 SDL_Renderer *g_renderer;
 SDL_Window *g_window;
 SDL_Texture *g_texture;
-
+SDL_PixelFormat* g_format;
 
 int main(int argc, char**argv)
 {
@@ -27,29 +29,29 @@ int main(int argc, char**argv)
     
     init();
 
-    time_t last_interrupt = 0;
+    uint32_t last_interrupt = SDL_GetTicks();
     
     print_state(&g_hardware.state);   
     
     while(done == 0)
     {   
-        handle_input(&g_hardware.ports);
-
-        uint8_t *op_code= &g_hardware.state.memory[g_hardware.state.pc];
- 
         
-        done= emulate_8080_op(&g_hardware.state);
-        
-        if(time(NULL) - last_interrupt > 1.0/60.0)
+       
+        if (SDL_GetTicks() - last_interrupt > (1.0 / FRAME_RATE) * 1000)
         {
+                     
+            done = emulate_8080_op(&g_hardware.state);
+            handle_input(&g_hardware.ports);
+
             if(g_hardware.state.int_enable)
             {
                 generate_interrupt(&g_hardware.state, 2);
-                last_interrupt = time(NULL);
+                last_interrupt = SDL_GetTicks();
             }
+            update_screen_buffer();
+            render();
+       
         }
-        //TODO render at VBLANK
-        
     }
    
     quit();
@@ -62,7 +64,6 @@ int main(int argc, char**argv)
 //SPACE INVADERS
 void hw_in(unsigned char *op_code)
 {
-    printf("-----HWIN-----\n");
     switch(op_code[1])
     {
         case 0x00: 
@@ -84,7 +85,6 @@ void hw_in(unsigned char *op_code)
 
 void hw_out(unsigned char *op_code)
 {
-    printf("-----HWOUT-----\n");
     switch(op_code[1])
     {    
         case 0x02: 
@@ -186,6 +186,7 @@ void handle_input(Ports *ports)
 
 }
 
+//Is this the hardware generating the interrupt or the CPU responding to the interrupt? Move to emulation.c?
 void generate_interrupt(State8080 *state, int interrupt_num)
 {
    push(state, (uint8_t)(state->pc & 0xff00) >> 8, (uint8_t)(state->pc & 0xff));
@@ -198,12 +199,14 @@ void init() {
     g_hardware.state = initialize_state();
     //space invaders mirrors the memory in addresses above 0x4000 and we will handle by moving the address back if >= 0x4000
     g_hardware.state.memory = (uint8_t*)malloc(0x4000);
+    memset(g_hardware.state.memory, 0, 0x4000);
+    //g_hardware.screen_buffer = (uint32_t*)malloc(SCREEN_WIDTH * SCREEN_HEIGHT *4);
+    //memset(g_hardware.screen_buffer, 0, SCREEN_HEIGHT * SCREEN_WIDTH * sizeof(uint32_t));
     // initiate function pointers
     in_ptr = &hw_in;
     out_ptr = &hw_out;
     memory_mapping_ptr = &si_memory_mapping;
 
-    //TODO allocate buffer for screen
     read_rom_to_memory(&g_hardware.state, FILE1, 0x0000);
     read_rom_to_memory(&g_hardware.state, FILE2, 0x0800);
     read_rom_to_memory(&g_hardware.state, FILE3, 0x1000);
@@ -235,7 +238,7 @@ void init() {
    g_renderer = SDL_CreateRenderer(
         g_window,
         -1,
-        SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
+        SDL_RENDERER_ACCELERATED 
     );
     if (g_renderer == NULL)
     {
@@ -259,12 +262,16 @@ void init() {
         exit(1);
     }
 
-
+    g_format = SDL_AllocFormat(SDL_PIXELFORMAT_RGBA32);
+    if (g_format == NULL) {
+        SDL_Log("Failed to allocate pixel format: %s", SDL_GetError());
+        exit(1);
+    }
 }
 void quit()
 {   
 	free(g_hardware.state.memory);
-    //free(g_hardware->screen_buffer);
+    free(g_hardware.screen_buffer);
     SDL_DestroyTexture(g_texture);
     SDL_DestroyRenderer(g_renderer);
     SDL_DestroyWindow(g_window);
@@ -279,4 +286,18 @@ uint16_t si_memory_mapping(uint16_t address)
         address = RAM_ADDR + (address & 0x1FFF);
 	}
 	return address;
+}
+void update_screen_buffer()
+{
+    
+    //TODO: Implement this function
+}
+
+
+void render()
+{	
+	SDL_UpdateTexture(g_texture, NULL, g_hardware.screen_buffer, SCREEN_WIDTH * sizeof(uint32_t));
+   	SDL_RenderClear(g_renderer);
+	SDL_RenderCopy(g_renderer, g_texture, NULL, NULL);
+	SDL_RenderPresent(g_renderer);
 }

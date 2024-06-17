@@ -21,7 +21,7 @@ typedef struct Hardware {
     State8080 state;
     Shifter shifter;
     Ports ports;
-    uint8_t* screen_buffer;
+    uint8_t screen_buffer[256][224][4];
 } Hardware;
 
 void hw_in(unsigned char *op_code);
@@ -31,3 +31,5 @@ void generate_interrupt(State8080 *state, int interrupt_num);
 void init();
 void quit();
 uint16_t si_memory_mapping(uint16_t address);
+void update_screen_buffer();
+void render();

@@ -281,16 +281,68 @@ void quit()
 
 uint16_t si_memory_mapping(uint16_t address)
 {
-	if(address >= RAM_MIRROR_ADDR)
+	if(address >= RAM_MIRROR_ADDR && address < 0x6000)
 	{
-        address = RAM_ADDR + (address & 0x1FFF);
+        address -= 0x2000;
 	}
 	return address;
 }
 void update_screen_buffer()
 {
-    
-    //TODO: Implement this function
+    for (int i = 0; i < 256 * 224 / 8; i++) {
+        const int y = i * 8 / 256;
+        const int base_x = (i * 8) % 256;
+        const uint8_t cur_byte = g_hardware.state.memory[VRAM_ADDR + i];
+
+        for (uint8_t bit = 0; bit < 8; bit++)
+        {
+            int px = base_x + bit;
+            int py = y;
+            const bool is_pixel_lit = (cur_byte >> bit) & 1;
+            uint8_t r = 0, g = 0, b = 0;
+
+            // colour handling:
+            if (is_pixel_lit) {
+                r = 255;
+                g = 255;
+                b = 255;
+            }
+            /*
+            else if (si->colored_screen && is_pixel_lit) {
+                if (px < 16) {
+                    if (py < 16 || py > 118 + 16) {
+                        r = 255;
+                        g = 255;
+                        b = 255;
+                    }
+                    else {
+                        g = 255;
+                    }
+                }
+                else if (px >= 16 && px <= 16 + 56) {
+                    g = 255;
+                }
+                else if (px >= 16 + 56 + 120 && px < 16 + 56 + 120 + 32) {
+                    r = 255;
+                }
+                else {
+                    r = 255;
+                    g = 255;
+                    b = 255;
+                }
+            }
+            */
+            // space invaders' screen is rotated 90 degrees anti-clockwise
+            // so we invert the coordinates:
+            const int temp_x = px;
+            px = py;
+            py = -temp_x + SCREEN_HEIGHT - 1;
+
+            g_hardware.screen_buffer[py][px][0] = r;
+            g_hardware.screen_buffer[py][px][1] = g;
+            g_hardware.screen_buffer[py][px][2] = b;
+        }
+    }
 }
 
 

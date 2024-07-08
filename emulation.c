@@ -361,7 +361,7 @@ int emulate_8080_op(State8080* state)
         case 0x2f: cma(&state->a); break;
         case 0x30: unimplemented_instruction(state); break;
         case 0x31: lxi_sp(state, op_code); break;
-        case 0x32: sta(state, op_code, &state->pc); break;
+        case 0x32: sta(state, op_code); break;
         case 0x33: unimplemented_instruction(state); break;
         case 0x34: unimplemented_instruction(state); break;
         case 0x35: unimplemented_instruction(state); break;

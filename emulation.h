@@ -39,6 +39,8 @@ void lda(State8080* state, unsigned char* op_code);
 void ana(State8080* state, uint8_t* reg);
 void xra(State8080* state, uint8_t* reg);
 void pop(State8080* state, uint8_t* reg1, uint8_t* reg2);
+void pop_psw(State8080* state);
+void push_psw(State8080* state);
 void (*in_ptr)(unsigned char*);
 void (*out_ptr)(unsigned char*);
 uint16_t(*memory_mapping_ptr)(uint16_t);

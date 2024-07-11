@@ -33,3 +33,4 @@ void quit();
 uint16_t si_memory_mapping(uint16_t address);
 void update_screen_buffer();
 void render();
+void update_texture();

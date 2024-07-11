@@ -34,32 +34,32 @@ int main(int argc, char**argv)
     print_state(&g_hardware.state);   
     
     while(done == 0)
-    {   
+    {
         
-       
         if (SDL_GetTicks() - last_interrupt > (1.0 / FRAME_RATE) * 1000)
-        {
-                     
+        {   
             done = emulate_8080_op(&g_hardware.state);
             handle_input(&g_hardware.ports);
-
-            if(g_hardware.state.int_enable)
-            {
+            
+            if (g_hardware.state.int_enable)
+            {              
+                
                 generate_interrupt(&g_hardware.state, 2);
+                
+                update_screen_buffer();
+                update_texture();
+                render();
                 last_interrupt = SDL_GetTicks();
             }
-            update_screen_buffer();
-            render();
-       
+           
         }
+       
     }
    
     quit();
 
     return 0;
 }
-
-
 
 //SPACE INVADERS
 void hw_in(unsigned char *op_code)
@@ -200,8 +200,6 @@ void init() {
     //space invaders mirrors the memory in addresses above 0x4000 and we will handle by moving the address back if >= 0x4000
     g_hardware.state.memory = (uint8_t*)malloc(0x4000);
     memset(g_hardware.state.memory, 0, 0x4000);
-    //g_hardware.screen_buffer = (uint32_t*)malloc(SCREEN_WIDTH * SCREEN_HEIGHT *4);
-    //memset(g_hardware.screen_buffer, 0, SCREEN_HEIGHT * SCREEN_WIDTH * sizeof(uint32_t));
     // initiate function pointers
     in_ptr = &hw_in;
     out_ptr = &hw_out;
@@ -345,11 +343,21 @@ void update_screen_buffer()
     }
 }
 
-
+void update_texture()
+{
+    int pitch = 0;
+    void* pixels = NULL;
+    if (SDL_LockTexture(g_texture, NULL, &pixels, &pitch) != 0) {
+        SDL_Log("Unable to lock texture: %s", SDL_GetError());
+    }
+    else {
+        memcpy(pixels, g_hardware.screen_buffer, pitch * SCREEN_HEIGHT);
+    }
+    SDL_UnlockTexture(g_texture);
+}
 void render()
 {	
-	SDL_UpdateTexture(g_texture, NULL, g_hardware.screen_buffer, SCREEN_WIDTH * sizeof(uint32_t));
-   	SDL_RenderClear(g_renderer);
+    SDL_RenderClear(g_renderer);
 	SDL_RenderCopy(g_renderer, g_texture, NULL, NULL);
 	SDL_RenderPresent(g_renderer);
 }

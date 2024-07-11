@@ -564,32 +564,11 @@ int emulate_8080_op(State8080* state)
         case 0xef: unimplemented_instruction(state); break;
 
         case 0xf0: unimplemented_instruction(state); break;
-        case 0xf1: 
-        {    
-            state->a = state->memory[(*memory_mapping_ptr)(state->sp+1)];
-            uint8_t psw = state->memory[(*memory_mapping_ptr)(state->sp)];
-            state->cc.cy = (0x01 == (psw & 0x01));
-            state->cc.p = (0x04 == (psw & 0x04));
-            state->cc.ac = (0x10 == (psw & 0x10));
-            state->cc.z = (0x40 == (psw & 0x08));
-            state->cc.s = (0x80 == (psw & 0x10));
-            state->sp += 2;    
-        }    
-        break;
+        case 0xf1: pop_psw(state); break;
         case 0xf2: unimplemented_instruction(state); break;
         case 0xf3: di(state); break;
         case 0xf4: unimplemented_instruction(state); break;
-        case 0xf5: 
-        {    
-            uint8_t psw = ( state->cc.cy |
-                            1 << 1 |
-                            state->cc.p << 2 |
-                            state->cc.ac << 4 |
-                            state->cc.z << 6 |
-                            state->cc.s << 7);
-            push(state, state->a, psw);    
-        } 
-        break;
+        case 0xf5: push_psw(state); break;
         case 0xf6: unimplemented_instruction(state); break;
         case 0xf7: unimplemented_instruction(state); break;
         case 0xf8: unimplemented_instruction(state); break;
@@ -674,28 +653,30 @@ void jnz(State8080 *state, unsigned char *op_code)
 
 void adi(State8080 *state, unsigned char *op_code)
 {
-    uint16_t sum = (uint16_t) state->a + (uint16_t) op_code[1];
-    state->cc.z = ((sum & 0xff) == 0);
-    state->cc.s = ((sum & 0x80) != 0);
+    uint16_t sum = (uint16_t)state->a + (uint16_t)op_code[1];
+    uint8_t truncated_sum = sum & 0xff;
+    state->cc.z = (truncated_sum == 0);
+    state->cc.s = truncated_sum >> 7;
     state->cc.cy = (sum > 0xff);
-    state->cc.p = parity(sum&0xff, 8);
-    state->a = sum & 0xff;
+    //unsure about this
+    state->cc.ac = (truncated_sum & 0xF) == 0;
+    state->cc.p = parity(truncated_sum, 8);
+    state->a = truncated_sum;
+    
     state->pc+=1;
 }
 
 void ret(State8080 *state)
 {
-    state->pc = state->memory[(*memory_mapping_ptr)(state->sp)] | (state->memory[(*memory_mapping_ptr)(state->sp+1)] << 8);
+    state->pc = (state->memory[(*memory_mapping_ptr)(state->sp + 1)] << 8) | state->memory[(*memory_mapping_ptr)(state->sp)];
     state->sp += 2;
 }
 
 void call (State8080 *state, unsigned char *op_code)
 {
-    uint16_t counter = state->pc+2;    
-    state->memory[(*memory_mapping_ptr)(state->sp-1)] = (counter >> 8) & 0xff;
-    state->memory[(*memory_mapping_ptr)(state->sp-2)] = (counter & 0xff);
-    state->sp = state->sp - 2;    
-    state->pc = (op_code[2] << 8) | op_code [1];  
+    uint16_t counter = state->pc+2;
+    push(state, (counter >> 8) & 0xff, counter & 0xff); 
+    jmp(&state->pc, op_code);
 }
 
 void rar(State8080 *state)
@@ -707,24 +688,26 @@ void rar(State8080 *state)
 
 void ani(State8080 *state, unsigned char *op_code)
 {
-    uint8_t x = state->a & op_code[1];    
-    state->cc.z = (x == 0);    
-    state->cc.s = (0x80 == (x & 0x80));    
-    state->cc.p = parity(x, 8);    
-    state->cc.cy = 0;           //Data book says ANI clears CY    
-    state->a = x;    
-    state->pc++;                //for the data byte  
+    uint8_t res = state->a & op_code[1];
+
+    state->cc.cy = 0;
+    state->cc.ac = ((state->a | op_code[1]) & 0x08) != 0;
+    state->cc.z = (res == 0);
+    state->cc.s = res >> 7;
+    state->cc.p = parity(res, 8);
+    state->a = res;
+    state->pc++;
 }
 
 void cpi(State8080 *state, unsigned char *op_code)
 {
-    uint8_t x = state->a - op_code[1];    
-    state->cc.z = (x == 0);    
-    state->cc.s = (0x80 == (x & 0x80));    
-    //It isn't clear in the data book what to do with p - had to pick    
-    state->cc.p = parity(x, 8);    
-    state->cc.cy = (state->a < op_code[1]);    
-    state->pc++;   
+    int16_t res = state->a - op_code[1];
+    state->cc.cy = res >> 8;
+    state->cc.ac = ~(state->a ^ res ^ op_code[1]) & 0x10;
+    state->cc.z = (res == 0);
+    state->cc.s = res >> 7;
+    state->cc.p = parity(res, 8);
+    state->pc++;
 }
 
 void xchg(State8080 *state)
@@ -850,4 +833,25 @@ void pop(State8080* state, uint8_t* reg1, uint8_t* reg2)
 	*reg1 = state->memory[(*memory_mapping_ptr)(state->sp+1)];
 	*reg2 = state->memory[(*memory_mapping_ptr)(state->sp)];
 	state->sp += 2;
+}
+void pop_psw(State8080* state)
+{
+    state->a = state->memory[(*memory_mapping_ptr)(state->sp + 1)];
+    uint8_t psw = state->memory[(*memory_mapping_ptr)(state->sp)];
+    state->cc.cy = (0x01 == (psw & 0x01));
+    state->cc.p = (0x04 == (psw & 0x04));
+    state->cc.ac = (0x10 == (psw & 0x10));
+    state->cc.z = (0x40 == (psw & 0x08));
+    state->cc.s = (0x80 == (psw & 0x10));
+    state->sp += 2;
+}
+void push_psw(State8080* state)
+{
+    uint8_t psw = (state->cc.cy |
+        1 << 1 |
+        state->cc.p << 2 |
+        state->cc.ac << 4 |
+        state->cc.z << 6 |
+        state->cc.s << 7);
+    push(state, state->a, psw);
 }

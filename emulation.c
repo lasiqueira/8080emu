@@ -305,7 +305,9 @@ void unimplemented_instruction(State8080* state)
 int emulate_8080_op(State8080* state)
    {
     unsigned char *op_code = &state->memory[(*memory_mapping_read_ptr)(state->pc)];
+    #ifndef NDEBUG
     disassemble_8080_op(state->memory, state->pc);
+    #endif
     state->pc+=1; 
 
     switch(*op_code)
@@ -581,7 +583,9 @@ int emulate_8080_op(State8080* state)
         case 0xfe: cpi(state, op_code); break;
         case 0xff: unimplemented_instruction(state); break;
     }
+    #ifndef NDEBUG
     print_state(state);
+    #endif
     return 0;
 }
 

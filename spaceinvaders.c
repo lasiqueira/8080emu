@@ -31,7 +31,9 @@ int main(int argc, char**argv)
 
     uint32_t last_interrupt = SDL_GetTicks();
     
-    print_state(&g_hardware.state);   
+    #ifndef NDEBUG
+    print_state(&g_hardware.state);
+    #endif
     int interrupt_num = 2;
     while(done == 0)
     {

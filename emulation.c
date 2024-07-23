@@ -4,11 +4,12 @@
 //EMU
 
 
-
+int gInstructionCount = 0;
 int disassemble_8080_op(unsigned char *code_buffer, int pc)
 {
     unsigned char *code = &code_buffer[pc];
     int op_bytes = 1;
+    printf("iCount: %d ", ++gInstructionCount);
     printf("%04x ", pc);
     switch(*code){
         case 0x00: printf("NOP"); break;
@@ -303,8 +304,8 @@ void unimplemented_instruction(State8080* state)
 
 int emulate_8080_op(State8080* state)
    {
-    unsigned char *op_code = &state->memory[(*memory_mapping_ptr)(state->pc)];
-    //disassemble_8080_op(state->memory, state->pc);
+    unsigned char *op_code = &state->memory[(*memory_mapping_read_ptr)(state->pc)];
+    disassemble_8080_op(state->memory, state->pc);
     state->pc+=1; 
 
     switch(*op_code)
@@ -580,7 +581,7 @@ int emulate_8080_op(State8080* state)
         case 0xfe: cpi(state, op_code); break;
         case 0xff: unimplemented_instruction(state); break;
     }
-    //print_state(state);
+    print_state(state);
     return 0;
 }
 
@@ -668,7 +669,7 @@ void adi(State8080 *state, unsigned char *op_code)
 
 void ret(State8080 *state)
 {
-    state->pc = (state->memory[(*memory_mapping_ptr)(state->sp + 1)] << 8) | state->memory[(*memory_mapping_ptr)(state->sp)];
+    state->pc = (state->memory[(*memory_mapping_read_ptr)(state->sp + 1)] << 8) | state->memory[(*memory_mapping_read_ptr)(state->sp)];
     state->sp += 2;
 }
 
@@ -743,8 +744,9 @@ void in(State8080 *state, unsigned char *op_code)
 
 void push(State8080 *state, uint8_t val1, uint8_t val2)
 {
-    state->memory[(*memory_mapping_ptr)(state->sp-1)] = val1;
-    state->memory[(*memory_mapping_ptr)(state->sp-2)] = val2;
+    (*memory_mapping_write_ptr)(state->sp - 1, val1);
+    (*memory_mapping_write_ptr)(state->sp - 2, val2);
+    
     state->sp = state->sp - 2;   
 }
 
@@ -779,7 +781,7 @@ void dad(State8080* state, uint8_t* reg1, uint8_t* reg2)
 void ldax(State8080* state, uint8_t* reg1, uint8_t* reg2)
 {
     uint16_t offset = (*reg1 << 8) | *reg2;
-	state->a = state->memory[(*memory_mapping_ptr)(offset)];
+	state->a = state->memory[(*memory_mapping_read_ptr)(offset)];
 }
 
 void inx(uint8_t* reg1, uint8_t* reg2)
@@ -798,13 +800,13 @@ void lxi_sp(State8080* state, unsigned char* op_code)
 void sta(State8080* state, unsigned char* op_code)
 {
     uint16_t offset = (op_code[2] << 8) | (op_code[1]);
-    state->memory[(*memory_mapping_ptr)(offset)] = state->a;
+    (*memory_mapping_write_ptr)(offset, state->a);
     state->pc += 2;
 }
 void lda(State8080* state, unsigned char* op_code)
 {
 	uint16_t offset = (op_code[2] << 8) | (op_code[1]);
-	state->a = state->memory[(*memory_mapping_ptr)(offset)];
+	state->a = state->memory[(*memory_mapping_read_ptr)(offset)];
 	state->pc += 2;
 }
 void ana(State8080* state, uint8_t* reg)
@@ -830,14 +832,14 @@ void xra(State8080* state, uint8_t* reg)
 
 void pop(State8080* state, uint8_t* reg1, uint8_t* reg2)
 {
-	*reg1 = state->memory[(*memory_mapping_ptr)(state->sp+1)];
-	*reg2 = state->memory[(*memory_mapping_ptr)(state->sp)];
+	*reg1 = state->memory[(*memory_mapping_read_ptr)(state->sp+1)];
+	*reg2 = state->memory[(*memory_mapping_read_ptr)(state->sp)];
 	state->sp += 2;
 }
 void pop_psw(State8080* state)
 {
-    state->a = state->memory[(*memory_mapping_ptr)(state->sp + 1)];
-    uint8_t psw = state->memory[(*memory_mapping_ptr)(state->sp)];
+    state->a = state->memory[(*memory_mapping_read_ptr)(state->sp + 1)];
+    uint8_t psw = state->memory[(*memory_mapping_read_ptr)(state->sp)];
     state->cc.cy = (0x01 == (psw & 0x01));
     state->cc.p = (0x04 == (psw & 0x04));
     state->cc.ac = (0x10 == (psw & 0x10));

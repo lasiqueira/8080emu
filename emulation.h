@@ -43,4 +43,5 @@ void pop_psw(State8080* state);
 void push_psw(State8080* state);
 void (*in_ptr)(unsigned char*);
 void (*out_ptr)(unsigned char*);
-uint16_t(*memory_mapping_ptr)(uint16_t);
+uint16_t(*memory_mapping_read_ptr)(uint16_t);
+void(*memory_mapping_write_ptr)(uint16_t, uint8_t);

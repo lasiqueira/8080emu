@@ -32,23 +32,26 @@ int main(int argc, char**argv)
     uint32_t last_interrupt = SDL_GetTicks();
     
     print_state(&g_hardware.state);   
-    
+    int interrupt_num = 2;
     while(done == 0)
     {
         
         if (SDL_GetTicks() - last_interrupt > (1.0 / FRAME_RATE) * 1000)
         {   
-            done = emulate_8080_op(&g_hardware.state);
             handle_input(&g_hardware.ports);
+            done = emulate_8080_op(&g_hardware.state);
+            
             
             if (g_hardware.state.int_enable)
-            {              
-                
-                generate_interrupt(&g_hardware.state, 2);
-                
+            {
+
+                generate_interrupt(&g_hardware.state, interrupt_num);
+               
                 update_screen_buffer();
                 update_texture();
+
                 render();
+                
                 last_interrupt = SDL_GetTicks();
             }
            
@@ -110,6 +113,11 @@ void handle_input(Ports *ports)
     SDL_Event event;
     while(SDL_PollEvent(&event))
     {   
+        if (event.type == SDL_QUIT)
+        {
+            exit(0);
+        }
+        
         if(event.type == SDL_KEYDOWN)
         {   
             switch(event.key.keysym.sym)
@@ -143,7 +151,7 @@ void handle_input(Ports *ports)
                     break;
             }
         }
-        if(event.type == SDL_KEYUP)
+        else if(event.type == SDL_KEYUP)
         {
             switch(event.key.keysym.sym)
             {
@@ -178,18 +186,15 @@ void handle_input(Ports *ports)
         }
         //TODO handle gamepad input
 
-        if(event.type == SDL_QUIT)
-        {
-            exit(0);
-        }
+        
     }
 
 }
 
-//Is this the hardware generating the interrupt or the CPU responding to the interrupt? Move to emulation.c?
 void generate_interrupt(State8080 *state, int interrupt_num)
 {
    push(state, (uint8_t)(state->pc & 0xff00) >> 8, (uint8_t)(state->pc & 0xff));
+   
    state->pc = 8 * interrupt_num;
 }
 
@@ -203,7 +208,8 @@ void init() {
     // initiate function pointers
     in_ptr = &hw_in;
     out_ptr = &hw_out;
-    memory_mapping_ptr = &si_memory_mapping;
+    memory_mapping_read_ptr = &si_memory_mapping_read;
+    memory_mapping_write_ptr = &si_memory_mapping_write;
 
     read_rom_to_memory(&g_hardware.state, FILE1, 0x0000);
     read_rom_to_memory(&g_hardware.state, FILE2, 0x0800);
@@ -277,13 +283,20 @@ void quit()
 	exit(0);
 }
 
-uint16_t si_memory_mapping(uint16_t address)
+uint16_t si_memory_mapping_read(uint16_t address)
 {
 	if(address >= RAM_MIRROR_ADDR && address < 0x6000)
 	{
         address -= 0x2000;
 	}
 	return address;
+}
+ 
+void si_memory_mapping_write(uint16_t address, uint8_t data)
+{
+    if (address >= 0x2000 && address < 0x4000) {
+        g_hardware.state.memory[address] = data;
+    }
 }
 void update_screen_buffer()
 {

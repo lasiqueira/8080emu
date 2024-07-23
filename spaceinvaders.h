@@ -21,7 +21,7 @@ typedef struct Hardware {
     State8080 state;
     Shifter shifter;
     Ports ports;
-    //uint8_t screen_buffer[256][224][4];
+    uint8_t screen_buffer[256][224][4];
 } Hardware;
 
 void hw_in(unsigned char *op_code);

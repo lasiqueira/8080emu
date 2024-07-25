@@ -63,3 +63,5 @@ void daa(State8080* state);
 void stax(State8080* state, uint8_t* reg1, uint8_t* reg2);
 void cz(State8080* state);
 void ora(State8080* state, uint8_t* reg);
+void adc(State8080* state, uint8_t* reg);
+void sbi(State8080* state, unsigned char* op_code);

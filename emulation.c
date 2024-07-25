@@ -363,7 +363,7 @@ int emulate_8080_op(State8080* state)
         case 0x2d: dcr(state, &state->l); break;
         case 0x2e: mvi(&state->l, op_code, &state->pc); break;
         case 0x2f: cma(&state->a); break;
-        case 0x30: unimplemented_instruction(state); break;
+        case 0x30: break;
         case 0x31: lxi_sp(state, op_code); break;
         case 0x32: sta(state, op_code); break;
         case 0x33: unimplemented_instruction(state); break;
@@ -456,14 +456,14 @@ int emulate_8080_op(State8080* state)
         case 0x85: add(state, &state->l); break;
         case 0x86: add(state, get_m(state)); break;
         case 0x87: add(state, &state->a); break;
-        case 0x88: unimplemented_instruction(state); break;
-        case 0x89: unimplemented_instruction(state); break;
-        case 0x8a: unimplemented_instruction(state); break;
-        case 0x8b: unimplemented_instruction(state); break;
-        case 0x8c: unimplemented_instruction(state); break;
-        case 0x8d: unimplemented_instruction(state); break;
-        case 0x8e: unimplemented_instruction(state); break;
-        case 0x8f: unimplemented_instruction(state); break;
+        case 0x88: adc(state, &state->b); break;
+        case 0x89: adc(state, &state->c); break;
+        case 0x8a: adc(state, &state->d); break;
+        case 0x8b: adc(state, &state->e); break;
+        case 0x8c: adc(state, &state->h); break;
+        case 0x8d: adc(state, &state->l); break;
+        case 0x8e: adc(state, get_m(state)); break;
+        case 0x8f: adc(state, &state->a); break;
 
         case 0x90: unimplemented_instruction(state); break;
         case 0x91: unimplemented_instruction(state); break;
@@ -547,7 +547,7 @@ int emulate_8080_op(State8080* state)
         case 0xdb: in(state, op_code); break;
         case 0xdc: unimplemented_instruction(state); break;
         case 0xdd: break;
-        case 0xde: unimplemented_instruction(state); break;
+        case 0xde: sbi(state, op_code); break;
         case 0xdf: unimplemented_instruction(state); break;
 
         case 0xe0: unimplemented_instruction(state); break;
@@ -1013,4 +1013,29 @@ void ora(State8080* state, uint8_t* reg)
     state->cc.z = (state->a == 0);
     state->cc.s = state->a >> 7;
     state->cc.p = parity(state->a, 8);
+}
+
+void adc(State8080* state, uint8_t* reg)
+{
+    uint16_t sum = (uint16_t)state->a + (uint16_t)*reg + state->cc.cy;
+    uint8_t truncated_sum = sum & 0xff;
+    state->cc.z = (truncated_sum == 0);
+    state->cc.s = truncated_sum >> 7;
+    state->cc.cy = (sum > 0xff);
+    state->cc.ac = (truncated_sum & 0xF) == 0;
+    state->cc.p = parity(truncated_sum, 8);
+    state->a = truncated_sum;
+}
+
+void sbi(State8080* state, unsigned char* op_code)
+{
+    uint16_t sum = (uint16_t)state->a - (uint16_t)op_code[1] - state->cc.cy;
+    uint8_t truncated_sum = sum & 0xff;
+    state->cc.z = (truncated_sum == 0);
+    state->cc.s = truncated_sum >> 7;
+    state->cc.cy = (sum > 0xff);
+    state->cc.ac = (truncated_sum & 0xF) == 0;
+    state->cc.p = parity(truncated_sum, 8);
+    state->a = truncated_sum;
+    state->pc++;
 }

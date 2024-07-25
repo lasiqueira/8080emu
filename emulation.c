@@ -320,7 +320,7 @@ int emulate_8080_op(State8080* state)
         case 0x04: unimplemented_instruction(state); break;
         case 0x05: dcr(state, &state->b); break;
         case 0x06: mvi(&state->b, op_code, &state->pc); break;
-        case 0x07: unimplemented_instruction(state); break;
+        case 0x07: rlc(state); break;
         case 0x08: break;
         case 0x09: dad(state, &state->b, &state->c); break;
         case 0x0a: ldax(state, &state->b, &state->c); break;
@@ -335,7 +335,7 @@ int emulate_8080_op(State8080* state)
         case 0x12: unimplemented_instruction(state); break;
         case 0x13: inx(&state->d, &state->e); break;
         case 0x14: unimplemented_instruction(state); break;
-        case 0x15: unimplemented_instruction(state); break;
+        case 0x15: dcr(state, &state->d); break;
         case 0x16: mvi(&state->d, op_code, &state->pc);break;
         case 0x17: unimplemented_instruction(state); break;
         case 0x18: break;
@@ -343,15 +343,15 @@ int emulate_8080_op(State8080* state)
         case 0x1a: ldax(state, &state->d, &state->e); break;
         case 0x1b: unimplemented_instruction(state); break;
         case 0x1c: unimplemented_instruction(state); break;
-        case 0x1d: unimplemented_instruction(state); break;
+        case 0x1d: dcr(state, &state->e); break;
         case 0x1e: mvi(&state->e, op_code, &state->pc); break;
         case 0x1f: rar(state); break;
-        case 0x20: unimplemented_instruction(state); break;
+        case 0x20: break;
         case 0x21: lxi(state, op_code, &state->h, &state->l); break;
-        case 0x22: unimplemented_instruction(state); break;
+        case 0x22: shld(state, op_code); break;
         case 0x23: inx(&state->h, &state->l); break;
         case 0x24: unimplemented_instruction(state); break;
-        case 0x25: unimplemented_instruction(state); break;
+        case 0x25: dcr(state, &state->h); break;
         case 0x26: mvi(&state->h, op_code, &state->pc); break;
         case 0x27: unimplemented_instruction(state); break;
         case 0x28: break;
@@ -359,7 +359,7 @@ int emulate_8080_op(State8080* state)
         case 0x2a: unimplemented_instruction(state); break;
         case 0x2b: unimplemented_instruction(state); break;
         case 0x2c: unimplemented_instruction(state); break;
-        case 0x2d: unimplemented_instruction(state); break;
+        case 0x2d: dcr(state, &state->l); break;
         case 0x2e: mvi(&state->l, op_code, &state->pc); break;
         case 0x2f: cma(&state->a); break;
         case 0x30: unimplemented_instruction(state); break;
@@ -367,7 +367,7 @@ int emulate_8080_op(State8080* state)
         case 0x32: sta(state, op_code); break;
         case 0x33: unimplemented_instruction(state); break;
         case 0x34: unimplemented_instruction(state); break;
-        case 0x35: unimplemented_instruction(state); break;
+        case 0x35: dcr(state, get_m(state)); break;
         case 0x36: mvi(get_m(state), op_code, &state->pc);break;
         case 0x37: unimplemented_instruction(state); break;
         case 0x38: break;
@@ -375,9 +375,9 @@ int emulate_8080_op(State8080* state)
         case 0x3a: lda(state, op_code); break;
         case 0x3b: unimplemented_instruction(state); break;
         case 0x3c: unimplemented_instruction(state); break;
-        case 0x3d: unimplemented_instruction(state); break;
+        case 0x3d: dcr(state, &state->a); break;
         case 0x3e: mvi(&state->a, op_code, &state->pc); break;
-        case 0x3f: unimplemented_instruction(state); break;
+        case 0x3f: cmc(state); break;
 
         case 0x40: mov(&state->b, &state->b); break;
         case 0x41: mov(&state->b, &state->c); break;
@@ -515,7 +515,7 @@ int emulate_8080_op(State8080* state)
         case 0xbe: unimplemented_instruction(state); break;
         case 0xbf: unimplemented_instruction(state); break;
 
-        case 0xc0: unimplemented_instruction(state); break;
+        case 0xc0: rnz(state); break;
         case 0xc1: pop(state, &state->b, &state->c); break;
         case 0xc2: jnz(state, op_code); break;   
         case 0xc3: jmp(&state->pc, op_code); break;
@@ -523,9 +523,9 @@ int emulate_8080_op(State8080* state)
         case 0xc5: push(state, state->b, state->c); break;
         case 0xc6: adi(state, op_code); break;
         case 0xc7: unimplemented_instruction(state); break;
-        case 0xc8: unimplemented_instruction(state); break;
+        case 0xc8: rz(state); break;
         case 0xc9: ret(state); break;
-        case 0xca: unimplemented_instruction(state); break;
+        case 0xca: jz(state, op_code); break;
         case 0xcb: break;
         case 0xcc: unimplemented_instruction(state); break;
         case 0xcd: call(state, op_code); break;
@@ -534,7 +534,7 @@ int emulate_8080_op(State8080* state)
 
         case 0xd0: unimplemented_instruction(state); break;
         case 0xd1: pop(state, &state->d, &state->e); break;
-        case 0xd2: unimplemented_instruction(state); break;
+        case 0xd2: jnc(state, op_code); break;
         case 0xd3: out(state, op_code); break;
         case 0xd4: unimplemented_instruction(state); break;
         case 0xd5: push(state, state->d, state->e); break;
@@ -542,7 +542,7 @@ int emulate_8080_op(State8080* state)
         case 0xd7: unimplemented_instruction(state); break;
         case 0xd8: unimplemented_instruction(state); break;
         case 0xd9: break;
-        case 0xda: unimplemented_instruction(state); break;
+        case 0xda: jc(state, op_code); break;
         case 0xdb: in(state, op_code); break;
         case 0xdc: unimplemented_instruction(state); break;
         case 0xdd: break;
@@ -558,8 +558,8 @@ int emulate_8080_op(State8080* state)
         case 0xe6: ani(state, op_code); break;
         case 0xe7: unimplemented_instruction(state); break;
         case 0xe8: unimplemented_instruction(state); break;
-        case 0xe9: unimplemented_instruction(state); break;
-        case 0xea: unimplemented_instruction(state); break;
+        case 0xe9: pchl(state); break;
+        case 0xea: jpe(state, op_code); break;
         case 0xeb: xchg(state); break;
         case 0xec: unimplemented_instruction(state); break;
         case 0xed: break;
@@ -655,6 +655,40 @@ void jnz(State8080 *state, unsigned char *op_code)
         // branch not taken    
         state->pc += 2; 
 }
+void jz(State8080* state, unsigned char* op_code)
+{
+    if (1 == state->cc.z)
+        state->pc = (op_code[2] << 8) | op_code[1];
+    else
+        // branch not taken    
+        state->pc += 2;
+}
+
+void jnc(State8080* state, unsigned char* op_code)
+{
+    if (0 == state->cc.cy)
+        state->pc = (op_code[2] << 8) | op_code[1];
+    else
+        // branch not taken    
+        state->pc += 2;
+}
+
+void jc(State8080* state, unsigned char* op_code)
+{
+	if (1 == state->cc.cy)
+		state->pc = (op_code[2] << 8) | op_code[1];
+	else
+		// branch not taken    
+		state->pc += 2;
+}
+void jpe(State8080* state, unsigned char* op_code)
+{
+	if (1 == state->cc.p)
+		state->pc = (op_code[2] << 8) | op_code[1];
+	else
+		// branch not taken    
+		state->pc += 2;
+}
 
 void adi(State8080 *state, unsigned char *op_code)
 {
@@ -676,7 +710,20 @@ void ret(State8080 *state)
     state->pc = (state->memory[(*memory_mapping_read_ptr)(state->sp + 1)] << 8) | state->memory[(*memory_mapping_read_ptr)(state->sp)];
     state->sp += 2;
 }
+void rz(State8080 *state)
+{
+    if (state->cc.z == 1) {
+        ret(state);
+    }
+		
+}
 
+void rnz(State8080 *state)
+{
+	if (state->cc.z == 0) {
+		ret(state);
+	}
+}
 void call (State8080 *state, unsigned char *op_code)
 {
     uint16_t counter = state->pc+2;
@@ -860,4 +907,29 @@ void push_psw(State8080* state)
         state->cc.z << 6 |
         state->cc.s << 7);
     push(state, state->a, psw);
+}
+
+void shld(State8080* state, unsigned char* op_code)
+{
+	uint16_t offset = (op_code[2] << 8) | (op_code[1]);
+	(*memory_mapping_write_ptr)(offset, state->l);
+	(*memory_mapping_write_ptr)(offset + 1, state->h);
+	state->pc += 2;
+}
+
+void pchl(State8080* state)
+{
+	state->pc = (state->h << 8) | state->l;
+}
+
+void rlc(State8080* state)
+{
+	uint8_t x = state->a;
+	state->a = (x << 1) | (x >> 7);
+	state->cc.cy = (x >> 7) & 1;
+}
+
+void cmc(State8080* state)
+{
+	state->cc.cy = !state->cc.cy;
 }

@@ -34,16 +34,16 @@ int main(int argc, char**argv)
     #ifndef NDEBUG
     print_state(&g_hardware.state);
     #endif
-    int interrupt_num = 2;
+    int interrupt_num = 0x08;
     while(done == 0)
     {
         
+        handle_input(&g_hardware.ports);
+        done = emulate_8080_op(&g_hardware.state);
+
         if (SDL_GetTicks() - last_interrupt > (1.0 / FRAME_RATE) * 1000)
         {   
-            handle_input(&g_hardware.ports);
-            done = emulate_8080_op(&g_hardware.state);
-            
-            
+           
             if (g_hardware.state.int_enable)
             {
 
@@ -53,11 +53,13 @@ int main(int argc, char**argv)
                 update_texture();
 
                 render();
-                
+			
+                interrupt_num = (interrupt_num == 0x08) ? 0x10 : 0x08;
                 last_interrupt = SDL_GetTicks();
             }
            
         }
+       
        
     }
    
@@ -197,7 +199,7 @@ void generate_interrupt(State8080 *state, int interrupt_num)
 {
    push(state, (uint8_t)(state->pc & 0xff00) >> 8, (uint8_t)(state->pc & 0xff));
    
-   state->pc = 8 * interrupt_num;
+   state->pc = interrupt_num;
 }
 
 

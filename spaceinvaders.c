@@ -197,9 +197,7 @@ void handle_input(Ports *ports)
 
 void generate_interrupt(State8080 *state, int interrupt_num)
 {
-   push(state, (uint8_t)(state->pc & 0xff00) >> 8, (uint8_t)(state->pc & 0xff));
-   
-   state->pc = interrupt_num;
+    rst(state, interrupt_num);
 }
 
 

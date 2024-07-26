@@ -357,7 +357,7 @@ int emulate_8080_op(State8080* state)
         case 0x27: daa(state); break;
         case 0x28: break;
         case 0x29: dad(state, &state->h, &state->l); break;
-        case 0x2a: unimplemented_instruction(state); break;
+        case 0x2a: lhld(state, op_code); break;
         case 0x2b: dcx(&state->h, &state->l); break;
         case 0x2c: inr(state, &state->l); break;
         case 0x2d: dcr(state, &state->l); break;
@@ -370,12 +370,12 @@ int emulate_8080_op(State8080* state)
         case 0x34: inr(state, get_m(state)); break;
         case 0x35: dcr(state, get_m(state)); break;
         case 0x36: mvi(get_m(state), op_code, &state->pc);break;
-        case 0x37: unimplemented_instruction(state); break;
+        case 0x37: stc(state); break;
         case 0x38: break;
         case 0x39: unimplemented_instruction(state); break;
         case 0x3a: lda(state, op_code); break;
         case 0x3b: unimplemented_instruction(state); break;
-        case 0x3c: unimplemented_instruction(state); break;
+        case 0x3c: inr(state, &state->a); break;
         case 0x3d: dcr(state, &state->a); break;
         case 0x3e: mvi(&state->a, op_code, &state->pc); break;
         case 0x3f: cmc(state); break;
@@ -507,57 +507,57 @@ int emulate_8080_op(State8080* state)
         case 0xb5: ora(state, &state->l); break;
         case 0xb6: ora(state, get_m(state)); break;
         case 0xb7: ora(state, &state->a); break;
-        case 0xb8: unimplemented_instruction(state); break;
-        case 0xb9: unimplemented_instruction(state); break;
-        case 0xba: unimplemented_instruction(state); break;
-        case 0xbb: unimplemented_instruction(state); break;
-        case 0xbc: unimplemented_instruction(state); break;
-        case 0xbd: unimplemented_instruction(state); break;
-        case 0xbe: unimplemented_instruction(state); break;
-        case 0xbf: unimplemented_instruction(state); break;
+        case 0xb8: cmp(state, &state->b); break;
+        case 0xb9: cmp(state, &state->c); break;
+        case 0xba: cmp(state, &state->d); break;
+        case 0xbb: cmp(state, &state->e); break;
+        case 0xbc: cmp(state, &state->h); break;
+        case 0xbd: cmp(state, &state->l); break;
+        case 0xbe: cmp(state, get_m(state)); break;
+        case 0xbf: cmp(state, &state->a); break;
 
         case 0xc0: rnz(state); break;
         case 0xc1: pop(state, &state->b, &state->c); break;
         case 0xc2: jnz(state, op_code); break;   
         case 0xc3: jmp(&state->pc, op_code); break;
-        case 0xc4: unimplemented_instruction(state); break;
+        case 0xc4: cnz(state, op_code); break;
         case 0xc5: push(state, state->b, state->c); break;
         case 0xc6: adi(state, op_code); break;
-        case 0xc7: unimplemented_instruction(state); break;
+        case 0xc7: rst(state, 0x00); break;
         case 0xc8: rz(state); break;
         case 0xc9: ret(state); break;
         case 0xca: jz(state, op_code); break;
         case 0xcb: break;
-        case 0xcc: cz(state); break;
+        case 0xcc: cz(state, op_code); break;
         case 0xcd: call(state, op_code); break;
         case 0xce: unimplemented_instruction(state); break;
-        case 0xcf: unimplemented_instruction(state); break;
+        case 0xcf: rst(state, 0x08); break;
 
-        case 0xd0: unimplemented_instruction(state); break;
+        case 0xd0: rnc(state); break;
         case 0xd1: pop(state, &state->d, &state->e); break;
         case 0xd2: jnc(state, op_code); break;
         case 0xd3: out(state, op_code); break;
         case 0xd4: unimplemented_instruction(state); break;
         case 0xd5: push(state, state->d, state->e); break;
-        case 0xd6: unimplemented_instruction(state); break;
-        case 0xd7: unimplemented_instruction(state); break;
-        case 0xd8: unimplemented_instruction(state); break;
+        case 0xd6: sui(state, op_code); break;
+        case 0xd7: rst(state, 0x10); break;
+        case 0xd8: rc(state); break;
         case 0xd9: break;
         case 0xda: jc(state, op_code); break;
         case 0xdb: in(state, op_code); break;
         case 0xdc: unimplemented_instruction(state); break;
         case 0xdd: break;
         case 0xde: sbi(state, op_code); break;
-        case 0xdf: unimplemented_instruction(state); break;
+        case 0xdf: rst(state, 0x18); break;
 
         case 0xe0: unimplemented_instruction(state); break;
         case 0xe1: pop(state, &state->h, &state->l); break;
         case 0xe2: unimplemented_instruction(state); break;
-        case 0xe3: unimplemented_instruction(state); break;
+        case 0xe3: xthl(state); break;
         case 0xe4: unimplemented_instruction(state); break;
         case 0xe5: push(state, state->h, state->l); break;
         case 0xe6: ani(state, op_code); break;
-        case 0xe7: unimplemented_instruction(state); break;
+        case 0xe7: rst(state, 0x20); break;
         case 0xe8: unimplemented_instruction(state); break;
         case 0xe9: pchl(state); break;
         case 0xea: jpe(state, op_code); break;
@@ -565,7 +565,7 @@ int emulate_8080_op(State8080* state)
         case 0xec: unimplemented_instruction(state); break;
         case 0xed: break;
         case 0xee: unimplemented_instruction(state); break;
-        case 0xef: unimplemented_instruction(state); break;
+        case 0xef: rst(state, 0x28); break;
 
         case 0xf0: unimplemented_instruction(state); break;
         case 0xf1: pop_psw(state); break;
@@ -573,8 +573,8 @@ int emulate_8080_op(State8080* state)
         case 0xf3: di(state); break;
         case 0xf4: unimplemented_instruction(state); break;
         case 0xf5: push_psw(state); break;
-        case 0xf6: unimplemented_instruction(state); break;
-        case 0xf7: unimplemented_instruction(state); break;
+        case 0xf6: ori(state, op_code); break;
+        case 0xf7: rst(state, 0x30); break;
         case 0xf8: rm(state); break;
         case 0xf9: unimplemented_instruction(state); break;
         case 0xfa: jm(state, op_code); break;
@@ -582,7 +582,7 @@ int emulate_8080_op(State8080* state)
         case 0xfc: unimplemented_instruction(state); break;
         case 0xfd: break;
         case 0xfe: cpi(state, op_code); break;
-        case 0xff: unimplemented_instruction(state); break;
+        case 0xff: rst(state, 0x38); break;
     }
     #ifndef NDEBUG
     print_state(state);
@@ -942,9 +942,27 @@ void shld(State8080* state, unsigned char* op_code)
 	state->pc += 2;
 }
 
+void lhld(State8080* state, unsigned char* op_code)
+{
+	uint16_t offset = (op_code[2] << 8) | (op_code[1]);
+	state->l = state->memory[(*memory_mapping_read_ptr)(offset)];
+	state->h = state->memory[(*memory_mapping_read_ptr)(offset + 1)];
+	state->pc += 2;
+}
+
 void pchl(State8080* state)
 {
 	state->pc = (state->h << 8) | state->l;
+}
+
+void xthl(State8080* state)
+{
+	uint8_t temp = state->l;
+	state->l = state->memory[(*memory_mapping_read_ptr)(state->sp)];
+	(*memory_mapping_write_ptr)(state->sp, temp);
+	temp = state->h;
+	state->h = state->memory[(*memory_mapping_read_ptr)(state->sp + 1)];
+	(*memory_mapping_write_ptr)(state->sp + 1, temp);
 }
 
 void rlc(State8080* state)
@@ -985,11 +1003,27 @@ void stax(State8080* state, uint8_t* reg1, uint8_t* reg2)
     (*memory_mapping_write_ptr)(offset, state->a);
 }
 
-void cz(State8080* state)
+void cz(State8080* state, unsigned char* op_code)
 {
     if (state->cc.z == 1)
     {
-        ret(state);
+        call(state, op_code);
+    }
+    else
+    {
+        state->pc += 2;
+    }
+}
+
+void cnz(State8080* state, unsigned char* op_code)
+{
+	if (state->cc.z == 0)
+	{
+		call(state, op_code);
+	}
+    else
+    {
+        state->pc += 2;
     }
 }
 
@@ -1038,4 +1072,63 @@ void sbi(State8080* state, unsigned char* op_code)
     state->cc.p = parity(truncated_sum, 8);
     state->a = truncated_sum;
     state->pc++;
+}
+void rst(State8080* state, uint16_t op_code)
+{
+	push(state, (state->pc >> 8) & 0xff, state->pc & 0xff);
+	state->pc = op_code;
+}
+
+void stc(State8080* state)
+{
+	state->cc.cy = 1;
+}
+
+void rc(State8080* state)
+{
+	if (state->cc.cy == 1)
+	{
+		ret(state);
+	}
+}
+void rnc(State8080* state)
+{
+	if (state->cc.cy == 0)
+	{
+		ret(state);
+	}
+}
+
+void sui(State8080* state, unsigned char* op_code)
+{
+	uint16_t sum = (uint16_t)state->a - (uint16_t)op_code[1];
+	uint8_t truncated_sum = sum & 0xff;
+	state->cc.z = (truncated_sum == 0);
+	state->cc.s = truncated_sum >> 7;
+	state->cc.cy = (sum > 0xff);
+	state->cc.ac = (truncated_sum & 0xF) == 0;
+	state->cc.p = parity(truncated_sum, 8);
+	state->a = truncated_sum;
+	state->pc++;
+}
+
+void ori(State8080* state, unsigned char* op_code)
+{
+	state->a |= op_code[1];
+	state->cc.cy = 0;
+	state->cc.ac = 0;
+	state->cc.z = (state->a == 0);
+	state->cc.s = state->a >> 7;
+	state->cc.p = parity(state->a, 8);
+	state->pc++;
+}
+
+void cmp(State8080* state, uint8_t* reg)
+{
+	uint16_t res = state->a - *reg;
+	state->cc.cy = res >> 8;
+	state->cc.ac = ~(state->a ^ res ^ *reg) & 0x10;
+	state->cc.z = (res == 0);
+	state->cc.s = res >> 7;
+	state->cc.p = parity(res, 8);
 }

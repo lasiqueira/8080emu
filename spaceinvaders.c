@@ -37,16 +37,13 @@ int main(int argc, char**argv)
     int interrupt_num = 0x08;
     while(done == 0)
     {
-        
         handle_input(&g_hardware.ports);
         done = emulate_8080_op(&g_hardware.state);
 
         if (SDL_GetTicks() - last_interrupt > (1.0 / FRAME_RATE) * 1000)
         {   
-           
             if (g_hardware.state.int_enable)
             {
-
                 generate_interrupt(&g_hardware.state, interrupt_num);
                
                 update_screen_buffer();
@@ -60,7 +57,8 @@ int main(int argc, char**argv)
            
         }
        
-       
+        // Limit FPS to 60
+        SDL_Delay(1000 / 60);
     }
    
     quit();
@@ -152,6 +150,9 @@ void handle_input(Ports *ports)
                     break;
                 case SDLK_UP: // P2 Shoot
                     ports->port_2 |= 1 << 4;
+                    break;
+                case SDLK_1:
+                    g_hardware.colour = ~g_hardware.colour;
                     break;
             }
         }
@@ -313,12 +314,11 @@ void update_screen_buffer()
             int py = y;
             const bool is_pixel_lit = (cur_byte >> bit) & 1;
             uint8_t r = 0, g = 0, b = 0;
-            if (is_pixel_lit) {
+            if (!g_hardware.colour && is_pixel_lit) {
                 r = 255;
                 g = 255;
                 b = 255;
             }
-            /*
             else if (g_hardware.colour && is_pixel_lit) {
                 if (px < 16) {
                     if (py < 16 || py > 118 + 16) {
@@ -342,7 +342,7 @@ void update_screen_buffer()
                     b = 255;
                 }
             }
-            */
+            
             const int temp_x = px;
             px = py;
             py = -temp_x + SCREEN_HEIGHT - 1;

@@ -313,15 +313,13 @@ void update_screen_buffer()
             int py = y;
             const bool is_pixel_lit = (cur_byte >> bit) & 1;
             uint8_t r = 0, g = 0, b = 0;
-
-            // colour handling:
             if (is_pixel_lit) {
                 r = 255;
                 g = 255;
                 b = 255;
             }
             /*
-            else if (si->colored_screen && is_pixel_lit) {
+            else if (g_hardware.colour && is_pixel_lit) {
                 if (px < 16) {
                     if (py < 16 || py > 118 + 16) {
                         r = 255;
@@ -345,8 +343,6 @@ void update_screen_buffer()
                 }
             }
             */
-            // space invaders' screen is rotated 90 degrees anti-clockwise
-            // so we invert the coordinates:
             const int temp_x = px;
             px = py;
             py = -temp_x + SCREEN_HEIGHT - 1;

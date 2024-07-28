@@ -57,8 +57,6 @@ int main(int argc, char**argv)
            
         }
        
-        // Limit FPS to 60
-        SDL_Delay(1000 / 60);
     }
    
     quit();

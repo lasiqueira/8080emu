@@ -37,11 +37,16 @@ int main(int argc, char**argv)
     int interrupt_num = 0x08;
     while(done == 0)
     {
-        handle_input(&g_hardware.ports);
-        done = emulate_8080_op(&g_hardware.state);
+        if(!g_hardware.state.halt)
+        {
+            done = emulate_8080_op(&g_hardware.state);
+
+        }
 
         if (SDL_GetTicks() - last_interrupt > (1.0 / FRAME_RATE) * 1000)
         {   
+            handle_input(&g_hardware.ports);
+
             if (g_hardware.state.int_enable)
             {
                 generate_interrupt(&g_hardware.state, interrupt_num);
@@ -197,6 +202,7 @@ void handle_input(Ports *ports)
 void generate_interrupt(State8080 *state, int interrupt_num)
 {
     rst(state, interrupt_num);
+    state->halt = 0;
 }
 
 

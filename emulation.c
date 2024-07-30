@@ -436,7 +436,7 @@ int emulate_8080_op(State8080* state)
         case 0x73: mov(get_m(state), &state->e); break;
         case 0x74: mov(get_m(state), &state->h); break;
         case 0x75: mov(get_m(state), &state->l); break;
-        case 0x76: hlt(); break;
+        case 0x76: hlt(state); break;
         case 0x77: mov(get_m(state), &state->a); break;
         case 0x78: mov(&state->a, &state->b); break;
         case 0x79: mov(&state->a, &state->c); break;
@@ -626,9 +626,9 @@ void mvi(uint8_t *lhv, unsigned char *op_code, uint16_t *pc)
     *pc += 1;
 }
 
-void hlt()
+void hlt(State8080 *state)
 {
-    exit(0);
+    state->halt = 1;
 }
 
 void rrc(State8080 *state)

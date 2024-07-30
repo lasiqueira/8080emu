@@ -20,6 +20,7 @@ typedef struct State8080 {
     uint8_t h;
     uint8_t l;
     uint8_t int_enable;
+    uint8_t halt;
     uint8_t* memory;
     uint16_t sp;
     uint16_t pc;

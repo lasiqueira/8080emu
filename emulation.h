@@ -11,7 +11,7 @@ int parity(int x, int size);
 void add(State8080 *state, uint8_t *reg);
 void mov(uint8_t *lhv, uint8_t *rhv);
 void mvi(uint8_t *lhv, unsigned char *op_code, uint16_t *pc);
-void hlt();
+void hlt(State8080 *state);
 void rrc(State8080 *state);
 void jmp(uint16_t *pc, unsigned char *op_code);
 void cma(uint8_t *reg_a);

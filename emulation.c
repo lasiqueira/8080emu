@@ -927,11 +927,13 @@ void pop_psw(State8080* state)
 {
     state->a = state->memory[(*memory_mapping_read_ptr)(state->sp + 1)];
     uint8_t psw = state->memory[(*memory_mapping_read_ptr)(state->sp)];
-    state->cc.cy = (0x01 == (psw & 0x01));
-    state->cc.p = (0x04 == (psw & 0x04));
-    state->cc.ac = (0x10 == (psw & 0x10));
-    state->cc.z = (0x40 == (psw & 0x08));
-    state->cc.s = (0x80 == (psw & 0x10));
+ 
+    state->cc.cy = (psw >> 0) & 1;
+    state->cc.p = (psw >> 2) & 1;
+    state->cc.ac = (psw >> 4) & 1;
+    state->cc.z = (psw >> 6) & 1;
+    state->cc.s = (psw >> 7) & 1;
+
     state->sp += 2;
 }
 void push_psw(State8080* state)

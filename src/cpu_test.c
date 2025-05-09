@@ -6,7 +6,7 @@
 #include "cpu_test.h"
 
 
-#define FILE1 "rom/TST8080.COM"
+#define FILE1 "../rom/TST8080.COM"
 
 State8080 g_state;
 bool done = 0;

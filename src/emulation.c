@@ -3,12 +3,12 @@
 //EMU
 
 
-int gInstructionCount = 0;
+uint64_t gInstructionCount = 0;
 int disassemble_8080_op(unsigned char *code_buffer, int pc)
 {
     unsigned char *code = &code_buffer[pc];
     int op_bytes = 1;
-    printf("iCount: %d ", ++gInstructionCount);
+    printf("iCount: %llu ", ++gInstructionCount);
     printf("pc: %04x ", pc);
     printf("opcode: %02x ", *code);
     switch(*code){
@@ -588,14 +588,12 @@ int emulate_8080_op(State8080* state)
     return 0;
 }
 
-int parity(int x, int size)
+uint8_t parity(uint8_t x)
 {
-    int8_t p = 0;
-    for (int i = 0; i < size; i++) 
-    {
-        p += ((x >> i) & 1);
-    }
-
+    uint8_t p = 0;
+    p = x ^ (x >> 1);
+    p = p ^ (p >> 2);
+    p = p ^ (p >> 4);
     return (p & 1) == 0;
 }
 
@@ -615,7 +613,7 @@ void add(State8080 *state, uint8_t val)
     state->cc.cy = (sum > 0xff);
     //unsure about this
     state->cc.ac = (truncated_sum & 0xF) == 0;
-    state->cc.p = parity(truncated_sum, 8);
+    state->cc.p = parity(truncated_sum);
     state->a = truncated_sum;
 }
 
@@ -698,7 +696,7 @@ void adi(State8080 *state, unsigned char *op_code)
     state->cc.cy = (sum > 0xff);
     //unsure about this
     state->cc.ac = (truncated_sum & 0xF) == 0;
-    state->cc.p = parity(truncated_sum, 8);
+    state->cc.p = parity(truncated_sum);
     state->a = truncated_sum;
     
     state->pc+=1;
@@ -751,7 +749,7 @@ void ani(State8080 *state, unsigned char *op_code)
     state->cc.ac = ((state->a | op_code[1]) & 0x08) != 0;
     state->cc.z = (res == 0);
     state->cc.s = res >> 7;
-    state->cc.p = parity(res, 8);
+    state->cc.p = parity(res);
     state->a = res;
     state->pc++;
 }
@@ -763,7 +761,7 @@ void cpi(State8080 *state, unsigned char *op_code)
     state->cc.ac = ~(state->a ^ res ^ op_code[1]) & 0x10;
     state->cc.z = (res == 0);
     state->cc.s = res >> 7;
-    state->cc.p = parity(res, 8);
+    state->cc.p = parity(res);
     state->pc++;
 }
 
@@ -812,7 +810,7 @@ void dcr(State8080* state, uint8_t* reg)
     state->cc.ac = !((sum & 0xF) == 0xF);
     state->cc.z = (sum == 0);
     state->cc.s = sum >> 7;
-    state->cc.p = parity(sum, 8);
+    state->cc.p = parity(sum);
     *reg = sum;
 }
 
@@ -875,7 +873,7 @@ void inr(State8080* state, uint8_t* reg)
     state->cc.ac = ((sum & 0xF) == 0);
     state->cc.z = (sum == 0);
     state->cc.s = sum >> 7;
-    state->cc.p = parity(sum, 8);
+    state->cc.p = parity(sum);
     *reg = sum;
 }
 
@@ -904,7 +902,7 @@ void ana(State8080* state, uint8_t val)
     state->cc.ac = ((state->a | val) & 0x08) != 0;
     state->cc.z = (res == 0);
     state->cc.s = res >> 7;
-    state->cc.p = parity(res, 8);
+    state->cc.p = parity(res);
     state->a = res;
 }
 void xra(State8080* state, uint8_t val)
@@ -914,7 +912,7 @@ void xra(State8080* state, uint8_t val)
     state->cc.ac = 0;
     state->cc.z = (state->a == 0);
     state->cc.s = state->a >> 7;
-    state->cc.p = parity(state->a, 8);
+    state->cc.p = parity(state->a);
 }
 
 void pop(State8080* state, uint8_t* reg1, uint8_t* reg2)
@@ -1012,7 +1010,7 @@ void daa(State8080* state)
     state->a += correction;
     state->cc.z = (state->a == 0);
     state->cc.s = state->a >> 7;
-    state->cc.p = parity(state->a, 8);
+    state->cc.p = parity(state->a);
 }
 
 void stax(State8080* state, uint8_t val1, uint8_t val2)
@@ -1076,7 +1074,7 @@ void ora(State8080* state, uint8_t val)
     state->cc.ac = 0;
     state->cc.z = (state->a == 0);
     state->cc.s = state->a >> 7;
-    state->cc.p = parity(state->a, 8);
+    state->cc.p = parity(state->a);
 }
 
 void adc(State8080* state, uint8_t val)
@@ -1087,7 +1085,7 @@ void adc(State8080* state, uint8_t val)
     state->cc.s = truncated_sum >> 7;
     state->cc.cy = (sum > 0xff);
     state->cc.ac = (truncated_sum & 0xF) == 0;
-    state->cc.p = parity(truncated_sum, 8);
+    state->cc.p = parity(truncated_sum);
     state->a = truncated_sum;
 }
 
@@ -1099,7 +1097,7 @@ void sbi(State8080* state, unsigned char* op_code)
     state->cc.s = truncated_sum >> 7;
     state->cc.cy = (sum > 0xff);
     state->cc.ac = (truncated_sum & 0xF) == 0;
-    state->cc.p = parity(truncated_sum, 8);
+    state->cc.p = parity(truncated_sum);
     state->a = truncated_sum;
     state->pc++;
 }
@@ -1137,7 +1135,7 @@ void sui(State8080* state, unsigned char* op_code)
 	state->cc.s = truncated_sum >> 7;
 	state->cc.cy = (sum > 0xff);
 	state->cc.ac = (truncated_sum & 0xF) == 0;
-	state->cc.p = parity(truncated_sum, 8);
+	state->cc.p = parity(truncated_sum);
 	state->a = truncated_sum;
 	state->pc++;
 }
@@ -1149,7 +1147,7 @@ void ori(State8080* state, unsigned char* op_code)
 	state->cc.ac = 0;
 	state->cc.z = (state->a == 0);
 	state->cc.s = state->a >> 7;
-	state->cc.p = parity(state->a, 8);
+	state->cc.p = parity(state->a);
 	state->pc++;
 }
 
@@ -1160,7 +1158,7 @@ void cmp(State8080* state, uint8_t val)
 	state->cc.ac = ~(state->a ^ res ^ val) & 0x10;
 	state->cc.z = (res == 0);
 	state->cc.s = res >> 7;
-	state->cc.p = parity(res, 8);
+	state->cc.p = parity(res);
 }
 
 void sub(State8080* state, uint8_t val)
@@ -1171,7 +1169,7 @@ void sub(State8080* state, uint8_t val)
 	state->cc.s = truncated_sum >> 7;
 	state->cc.cy = (sum > 0xff);
 	state->cc.ac = (truncated_sum & 0xF) == 0;
-	state->cc.p = parity(truncated_sum, 8);
+	state->cc.p = parity(truncated_sum);
 	state->a = truncated_sum;
 }
 
@@ -1183,7 +1181,7 @@ void sbb(State8080* state, uint8_t val)
 	state->cc.s = truncated_sum >> 7;
 	state->cc.cy = (sum > 0xff);
 	state->cc.ac = (truncated_sum & 0xF) == 0;
-	state->cc.p = parity(truncated_sum, 8);
+	state->cc.p = parity(truncated_sum);
 	state->a = truncated_sum;
 }
 
@@ -1212,7 +1210,7 @@ void aci(State8080* state, unsigned char* op_code)
 	state->cc.s = truncated_sum >> 7;
 	state->cc.cy = (sum > 0xff);
 	state->cc.ac = (truncated_sum & 0xF) == 0;
-	state->cc.p = parity(truncated_sum, 8);
+	state->cc.p = parity(truncated_sum);
 	state->a = truncated_sum;
 	state->pc++;
 }
@@ -1288,7 +1286,7 @@ void xri(State8080* state, unsigned char* op_code)
 	state->cc.ac = 0;
 	state->cc.z = (state->a == 0);
 	state->cc.s = state->a >> 7;
-	state->cc.p = parity(state->a, 8);
+	state->cc.p = parity(state->a);
 	state->pc++;
 }
 

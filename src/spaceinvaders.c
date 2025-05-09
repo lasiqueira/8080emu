@@ -1,4 +1,4 @@
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 #include "emulation.h"
 #include "spaceinvaders.h"
 #include <stdbool.h>
@@ -6,10 +6,10 @@
 #define SCREEN_WIDTH  224
 #define SCREEN_HEIGHT  256
 
-#define FILE1 "rom/invaders.h"
-#define FILE2 "rom/invaders.g"
-#define FILE3 "rom/invaders.f"
-#define FILE4 "rom/invaders.e"
+#define FILE1 "../rom/invaders.h"
+#define FILE2 "../rom/invaders.g"
+#define FILE3 "../rom/invaders.f"
+#define FILE4 "../rom/invaders.e"
 
 #define RAM_ADDR 0x2000
 #define RAM_MIRROR_ADDR 0x4000
@@ -21,7 +21,7 @@ Hardware g_hardware;
 SDL_Renderer *g_renderer;
 SDL_Window *g_window;
 SDL_Texture *g_texture;
-SDL_PixelFormat* g_format;
+const SDL_PixelFormatDetails *g_format;
 
 int main(int argc, char**argv)
 {
@@ -118,28 +118,28 @@ void handle_input(Ports *ports)
     SDL_Event event;
     while(SDL_PollEvent(&event))
     {   
-        if (event.type == SDL_QUIT)
+        if (event.type == SDL_EVENT_QUIT)
         {
             exit(0);
         }
         
-        if(event.type == SDL_KEYDOWN)
+        if(event.type == SDL_EVENT_KEY_DOWN)
         {   
-            switch(event.key.keysym.sym)
+            switch(event.key.key)
             {
-                case SDLK_c:  // Insert coin
+                case SDLK_C:  // Insert coin
                     ports->port_1 |= 1;
                     break;
-                case SDLK_s:  // P1 Start
+                case SDLK_S:  // P1 Start
                     ports->port_1 |= 1 << 2;
                     break;
-                case SDLK_w: // P1 Shoot
+                case SDLK_W: // P1 Shoot
                     ports->port_1 |= 1 << 4;
                     break;
-                case SDLK_a: // P1 Move Left
+                case SDLK_A: // P1 Move Left
                     ports->port_1 |= 1 << 5;
                     break;
-                case SDLK_d: // P1 Move Right
+                case SDLK_D: // P1 Move Right
                     ports->port_1 |= 1 << 6;
                     break;
                 case SDLK_LEFT: // P2 Move Left
@@ -159,23 +159,23 @@ void handle_input(Ports *ports)
                     break;
             }
         }
-        else if(event.type == SDL_KEYUP)
+        else if(event.type == SDL_EVENT_KEY_UP)
         {
-            switch(event.key.keysym.sym)
+            switch(event.key.key)
             {
-                case SDLK_c:  // Insert coin
+                case SDLK_C:  // Insert coin
                     ports->port_1 &= ~1;
                     break;
-                case SDLK_s:  // P1 Start
+                case SDLK_S:  // P1 Start
                     ports->port_1 &= ~(1 << 2);
                     break;
-                case SDLK_w: // P1 Shoot
+                case SDLK_W: // P1 Shoot
                     ports->port_1 &= ~(1 << 4);
                     break;
-                case SDLK_a: // P1 Move Left
+                case SDLK_A: // P1 Move Left
                     ports->port_1 &= ~(1 << 5);
                     break;
-                case SDLK_d: // P1 Move Right
+                case SDLK_D: // P1 Move Right
                     ports->port_1 &= ~(1 << 6);
                     break;
                 case SDLK_LEFT: // P2 Move Left
@@ -226,38 +226,22 @@ void init() {
 
     //Initiating SDL
 
-    if (SDL_Init(SDL_INIT_VIDEO) != 0)
+    if (!SDL_Init(SDL_INIT_VIDEO))
     {
         SDL_Log("Failed to initialise SDL: %s", SDL_GetError());
         exit(1);
     }
 
-    g_window = SDL_CreateWindow(
-        "Space Invaders",
-        SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED,
-        SCREEN_WIDTH*2, SCREEN_HEIGHT*2, SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-
-
-    if (g_window == NULL)
+    if(!SDL_CreateWindowAndRenderer("Space Invaders", SCREEN_WIDTH*2, SCREEN_HEIGHT*2 , SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY, &g_window, &g_renderer))
     {
-        SDL_Log("Failed to create window: %s", SDL_GetError());
+        SDL_Log("SDL_CreateWindowAndRenderer failed: %s", SDL_GetError());
         exit(1);
     }
+
+    
     SDL_SetWindowMinimumSize(g_window, SCREEN_WIDTH, SCREEN_HEIGHT);
 
-   g_renderer = SDL_CreateRenderer(
-        g_window,
-        -1,
-        SDL_RENDERER_ACCELERATED 
-    );
-    if (g_renderer == NULL)
-    {
-        SDL_Log("Failed to create renderer: %s", SDL_GetError());
-        exit(1);
-    }
-
-    SDL_RenderSetLogicalSize(g_renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
+    SDL_SetRenderLogicalPresentation(g_renderer, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_LOGICAL_PRESENTATION_STRETCH);
 
     g_texture = SDL_CreateTexture(
         g_renderer,
@@ -273,7 +257,7 @@ void init() {
         exit(1);
     }
 
-    g_format = SDL_AllocFormat(SDL_PIXELFORMAT_RGBA32);
+    g_format = SDL_GetPixelFormatDetails(SDL_PIXELFORMAT_RGBA32);
     if (g_format == NULL) {
         SDL_Log("Failed to allocate pixel format: %s", SDL_GetError());
         exit(1);
@@ -362,7 +346,7 @@ void update_texture()
 {
     int pitch = 0;
     void* pixels = NULL;
-    if (SDL_LockTexture(g_texture, NULL, &pixels, &pitch) != 0) {
+    if (!SDL_LockTexture(g_texture, NULL, &pixels, &pitch)) {
         SDL_Log("Unable to lock texture: %s", SDL_GetError());
     }
     else {
@@ -373,6 +357,6 @@ void update_texture()
 void render()
 {	
     SDL_RenderClear(g_renderer);
-	SDL_RenderCopy(g_renderer, g_texture, NULL, NULL);
+	SDL_RenderTexture(g_renderer, g_texture, NULL, NULL);
 	SDL_RenderPresent(g_renderer);
 }

@@ -5,7 +5,7 @@
 int disassemble_8080_op(unsigned char *code_buffer, int pos);
 void unimplemented_instruction(State8080* state);
 int emulate_8080_op(State8080* state);
-int parity(int x, int size);
+uint8_t parity(uint8_t x);
 
 //OPCODE FUNS
 void add(State8080 *state, uint8_t val);

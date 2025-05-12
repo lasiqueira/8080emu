@@ -1,5 +1,9 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include "cpu.h"
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 typedef struct Shifter {
     uint8_t shift0;
@@ -36,3 +40,5 @@ void si_memory_mapping_write(uint16_t address, uint8_t data);
 void update_screen_buffer();
 void render();
 void update_texture();
+void get_executable_path(char* buffer, size_t size);
+void construct_rom_path(const char* exe_path, const char* relative_path, char* output_path, size_t size);

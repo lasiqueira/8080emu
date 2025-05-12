@@ -6,10 +6,10 @@
 #define SCREEN_WIDTH  224
 #define SCREEN_HEIGHT  256
 
-#define FILE1 "../rom/invaders.h"
-#define FILE2 "../rom/invaders.g"
-#define FILE3 "../rom/invaders.f"
-#define FILE4 "../rom/invaders.e"
+#define FILE1 "rom/invaders.h"
+#define FILE2 "rom/invaders.g"
+#define FILE3 "rom/invaders.f"
+#define FILE4 "rom/invaders.e"
 
 #define RAM_ADDR 0x2000
 #define RAM_MIRROR_ADDR 0x4000
@@ -218,11 +218,20 @@ void init() {
     memory_mapping_read_ptr = &si_memory_mapping_read;
     memory_mapping_write_ptr = &si_memory_mapping_write;
 
-    read_rom_to_memory(&g_hardware.state, FILE1, 0x0000);
-    read_rom_to_memory(&g_hardware.state, FILE2, 0x0800);
-    read_rom_to_memory(&g_hardware.state, FILE3, 0x1000);
-    read_rom_to_memory(&g_hardware.state, FILE4, 0x1800);
-    
+    char exe_path[1024];
+    get_executable_path(exe_path, sizeof(exe_path));
+
+    char file1_path[1024], file2_path[1024], file3_path[1024], file4_path[1024];
+    construct_rom_path(exe_path, FILE1, file1_path, sizeof(file1_path));
+    construct_rom_path(exe_path, FILE2, file2_path, sizeof(file2_path));
+    construct_rom_path(exe_path, FILE3, file3_path, sizeof(file3_path));
+    construct_rom_path(exe_path, FILE4, file4_path, sizeof(file4_path));
+
+    // Load ROM files
+    read_rom_to_memory(&g_hardware.state, file1_path, 0x0000);
+    read_rom_to_memory(&g_hardware.state, file2_path, 0x0800);
+    read_rom_to_memory(&g_hardware.state, file3_path, 0x1000);
+    read_rom_to_memory(&g_hardware.state, file4_path, 0x1800);
 
     //Initiating SDL
 
@@ -245,7 +254,7 @@ void init() {
 
     g_texture = SDL_CreateTexture(
         g_renderer,
-        SDL_PIXELFORMAT_RGBA32,
+        SDL_PIXELFORMAT_RGBX32,
         SDL_TEXTUREACCESS_STREAMING,
         SCREEN_WIDTH,
         SCREEN_HEIGHT
@@ -256,8 +265,9 @@ void init() {
         SDL_Log("Failed to create texture: %s", SDL_GetError());
         exit(1);
     }
+	SDL_SetTextureScaleMode(g_texture, SDL_SCALEMODE_NEAREST);
 
-    g_format = SDL_GetPixelFormatDetails(SDL_PIXELFORMAT_RGBA32);
+    g_format = SDL_GetPixelFormatDetails(SDL_PIXELFORMAT_RGBX32);
     if (g_format == NULL) {
         SDL_Log("Failed to allocate pixel format: %s", SDL_GetError());
         exit(1);
@@ -359,4 +369,49 @@ void render()
     SDL_RenderClear(g_renderer);
 	SDL_RenderTexture(g_renderer, g_texture, NULL, NULL);
 	SDL_RenderPresent(g_renderer);
+}
+
+void get_executable_path(char* buffer, size_t size) {
+    #ifdef _WIN32
+    GetModuleFileName(NULL, buffer, size);
+    char* last_slash = strrchr(buffer, '\\');
+    if (last_slash) {
+        *last_slash = '\0'; // Remove the executable name to get the directory
+    }
+    #else
+    ssize_t len = readlink("/proc/self/exe", buffer, size - 1);
+    if (len != -1) {
+        buffer[len] = '\0';
+        char* last_slash = strrchr(buffer, '/');
+        if (last_slash) {
+            *last_slash = '\0'; // Remove the executable name to get the directory
+        }
+    }
+    else {
+        perror("readlink");
+        exit(1);
+    }
+    #endif
+}
+
+void construct_rom_path(const char* exe_path, const char* relative_path, char* output_path, size_t size) {
+    // Navigate up to the project root (assumes "out/build/x64/Debug" structure)
+    char project_root[1024];
+    strncpy(project_root, exe_path, sizeof(project_root));
+    for (int i = 0; i < 4; i++) { // Go up 4 levels
+        char* last_slash = strrchr(project_root, '/');
+        #ifdef _WIN32
+        last_slash = strrchr(project_root, '\\');
+        #endif
+        if (last_slash) {
+            *last_slash = '\0';
+        }
+        else {
+            fprintf(stderr, "Failed to locate project root\n");
+            exit(1);
+        }
+    }
+
+    // Append the subdirectory and relative path to the ROM file
+    snprintf(output_path, size, "%s/8080emu/%s", project_root, relative_path);
 }

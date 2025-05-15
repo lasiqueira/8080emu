@@ -373,12 +373,25 @@ void render()
 
 void get_executable_path(char* buffer, size_t size) {
     #ifdef _WIN32
+    // Windows-specific logic
     GetModuleFileName(NULL, buffer, size);
     char* last_slash = strrchr(buffer, '\\');
     if (last_slash) {
         *last_slash = '\0'; // Remove the executable name to get the directory
     }
+    #elif __APPLE__
+    // macOS-specific logic
+    uint32_t bufsize = (uint32_t)size;
+    if (_NSGetExecutablePath(buffer, &bufsize) != 0) {
+        fprintf(stderr, "Buffer too small; need size %u\n", bufsize);
+        exit(1);
+    }
+    char* last_slash = strrchr(buffer, '/');
+    if (last_slash) {
+        *last_slash = '\0'; // Remove the executable name to get the directory
+    }
     #else
+    // Linux-specific logic
     ssize_t len = readlink("/proc/self/exe", buffer, size - 1);
     if (len != -1) {
         buffer[len] = '\0';
@@ -386,8 +399,7 @@ void get_executable_path(char* buffer, size_t size) {
         if (last_slash) {
             *last_slash = '\0'; // Remove the executable name to get the directory
         }
-    }
-    else {
+    } else {
         perror("readlink");
         exit(1);
     }
@@ -395,23 +407,21 @@ void get_executable_path(char* buffer, size_t size) {
 }
 
 void construct_rom_path(const char* exe_path, const char* relative_path, char* output_path, size_t size) {
-    // Navigate up to the project root (assumes "out/build/x64/Debug" structure)
     char project_root[1024];
     strncpy(project_root, exe_path, sizeof(project_root));
-    for (int i = 0; i < 4; i++) { // Go up 4 levels
-        char* last_slash = strrchr(project_root, '/');
-        #ifdef _WIN32
-        last_slash = strrchr(project_root, '\\');
-        #endif
-        if (last_slash) {
-            *last_slash = '\0';
-        }
-        else {
-            fprintf(stderr, "Failed to locate project root\n");
-            exit(1);
-        }
+    project_root[sizeof(project_root) - 1] = '\0';
+    // Go up one level from build directory
+    #ifdef _WIN32
+    char* last_slash = strrchr(project_root, '\\');
+    #else
+    char* last_slash = strrchr(project_root, '/');
+    #endif
+    if (last_slash) {
+        *last_slash = '\0';
+    } else {
+        fprintf(stderr, "Failed to locate project root\n");
+        exit(1);
     }
-
-    // Append the subdirectory and relative path to the ROM file
-    snprintf(output_path, size, "%s/8080emu/%s", project_root, relative_path);
+    // Append the relative path (e.g., "rom/invaders.h")
+    snprintf(output_path, size, "%s/%s", project_root, relative_path);
 }
